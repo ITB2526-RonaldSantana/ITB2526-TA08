@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora de Ahorro Energético — ITB</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css"/>
+
+<style>
+/* Plan section tabs */
+.plan-tab {
+  padding:.45rem 1rem;border:1.5px solid rgba(168,110,60,.35);
+  border-radius:20px;background:transparent;
+  color:var(--text-soft);font-size:.8rem;font-weight:700;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.plan-tab:hover {
+  background:rgba(168,110,60,.12);color:var(--wood-dark);
+}
+.plan-tab.active {
+  background:linear-gradient(135deg,var(--eco-mid),var(--eco-dark));
+  color:#fff;border-color:transparent;
+  box-shadow:0 2px 8px rgba(27,67,50,.25);
+}
+/* Fade animation for plan blocks */
+.plan-block {
+  transition:opacity .25s ease;
+}
+.plan-block.hidden {
+  display:none;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <img class="hero-img" src="assets/hero.jpg" alt="Sostenibilitat energètica"/>
+  <div class="header-overlay">
+    <div class="header-logo-wrap">
+      <img src="assets/logo-itb.png" alt="Logo ITB" onerror="this.style.display='none'"/>
+      <span class="itb-text">ITB</span>
+    </div>
+    <div class="header-text">
+      <h1>🌿 Calculadora de Ahorro Energético</h1>
+      <p>Institut Tecnològic de Barcelona · Fase 3 · Curs 2024–2025</p>
+      <div class="header-badges">
+        <span class="hbadge">⚡ Electricitat</span>
+        <span class="hbadge">💧 Aigua</span>
+        <span class="hbadge">📋 Material</span>
+        <span class="hbadge">🧹 Neteja</span>
+        <span class="hbadge">🌱 Pla −30%</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav id="main-nav">
+  <button class="active" onclick="showSection('dashboard', this)">📊 Dashboard</button>
+  <button onclick="showSection('calculos', this)">🔢 Càlculs</button>
+  <button onclick="showSection('graficos', this)">📈 Gràfics</button>
+  <button onclick="showSection('plan', this)">🌱 Pla 30%</button>
+  <button onclick="showSection('consejos', this)">💡 Consells</button>
+  <button class="btn-pdf-nav" onclick="exportPDF()">⬇ PDF</button>
+</nav>
+
+<main>
+
+<!-- ============================================================
+     DASHBOARD — Visió general ràpida del consum
+     Lògica: fotos → KPIs anuals → filtre de període → KPIs període → gràfics
+     ============================================================ -->
+<div id="dashboard" class="section active">
+
+  <div class="photo-strip">
+    <img src="assets/foto-solar.jpg"   alt="Plaques solars"/>
+    <img src="assets/foto-energia.jpg" alt="Energia sostenible"/>
+    <img src="assets/foto-hoja.jpg"    alt="Natura"/>
+    <img src="assets/foto-bosque.jpg"  alt="Bosc"/>
+    <img src="assets/foto-agua.jpg"    alt="Aigua"/>
+  </div>
+
+  <!-- KPIs anuals — consum actual sense millores -->
+  <div class="card">
+    <h2>🌍 Resum de Consum Anual Projectat
+      <span class="badge badge-green" id="mejoras-badge" style="display:none">✅ Millores aplicades</span>
+    </h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:.8rem">
+      Projecció basada en dades reals del centre 2024. Per aplicar millores i simular estalvis, ves al <strong>Pla 30%</strong>.
+    </p>
+    <div class="kpi-grid" id="kpi-grid"></div>
+  </div>
+
+  <!-- Filtre de període + KPIs de període -->
+  <div class="card">
+    <h2>📅 Filtre de Període</h2>
+    <div class="filters">
+      <label>Des de:</label>
+      <select id="f-desde" onchange="updateAll()">
+        <option value="0">Gener</option><option value="1">Febrer</option>
+        <option value="2">Març</option><option value="3">Abril</option>
+        <option value="4">Maig</option><option value="5">Juny</option>
+        <option value="6">Juliol</option><option value="7">Agost</option>
+        <option value="8" selected>Setembre</option><option value="9">Octubre</option>
+        <option value="10">Novembre</option><option value="11">Desembre</option>
+      </select>
+      <label>Fins a:</label>
+      <select id="f-hasta" onchange="updateAll()">
+        <option value="0">Gener</option><option value="1">Febrer</option>
+        <option value="2">Març</option><option value="3">Abril</option>
+        <option value="4">Maig</option><option value="5" selected>Juny</option>
+        <option value="6">Juliol</option><option value="7">Agost</option>
+        <option value="8">Setembre</option><option value="9">Octubre</option>
+        <option value="10">Novembre</option><option value="11">Desembre</option>
+      </select>
+      <button class="btn btn-eco" onclick="setCursoEscolar()">📚 Curs escolar</button>
+      <button class="btn btn-wood" onclick="setAnioCompleto()">📆 Any complet</button>
+    </div>
+    <div class="kpi-grid" id="kpi-periodo"></div>
+  </div>
+
+  <!-- Gràfics mensuals dels 4 consums -->
+  <div class="card">
+    <h2>📊 Evolució Mensual del Consum</h2>
+    <div class="chart-row">
+      <div class="chart-box"><h4>⚡ Electricitat (kWh)</h4><canvas id="ch-elec"></canvas></div>
+      <div class="chart-box"><h4>💧 Aigua (m³)</h4><canvas id="ch-agua"></canvas></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box"><h4>📋 Material d'oficina (€)</h4><canvas id="ch-oficina"></canvas></div>
+      <div class="chart-box"><h4>🧹 Productes de neteja (€)</h4><canvas id="ch-limpieza"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /dashboard -->
+
+
+<!-- ============================================================
+     CÀLCULS — Dades i projeccions detallades
+     Lògica: taula 8 càlculs → factures material → factures neteja → manteniment elèctric
+     ============================================================ -->
+<div id="calculos" class="section">
+
+  <img class="sec-img" src="assets/foto-calculos.jpg" alt="Anàlisi de dades energètiques"/>
+
+  <!-- Taula de càlculs sincronitzada amb el filtre del Dashboard -->
+  <div class="card">
+    <h2>🔢 Els 8 Càlculs Interactius Obligatoris</h2>
+    <p style="font-size:.83rem;color:var(--text-soft);margin-bottom:.8rem">
+      Projecció basada en dades reals del centre (2024). El filtre de període es sincronitza amb el Dashboard.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Indicador</th><th>Període</th>
+          <th>Valor base</th><th>Amb millores (−30%)</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-calculos"></tbody>
+    </table>
+  </div>
+
+  <!-- Factures agrupades en una sola card amb seccions -->
+  <div class="card">
+    <h2>🗂️ Detall de Factures i Despeses 2024</h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:1rem">
+      Dades reals extrets de factures del centre. Constitueixen la línia base per als càlculs d'estalvi.
+    </p>
+
+    <h3>📋 Material d'Oficina — Lyreco</h3>
+    <table style="margin-bottom:1.2rem">
+      <thead><tr><th>Data</th><th>Productes</th><th>€ net</th></tr></thead>
+      <tbody>
+        <tr><td>Abr 2024</td><td>Recambis borrador x10 · Borradors magnètics Faibo x6 · Paper A4 Navigator 80g x15 resmes</td><td>126,68 €</td></tr>
+        <tr><td>Mai 2024</td><td>Marcadors Pilot Begreen: verd x25, vermell x30, negre x30, blau x30 (0,89€/ud)</td><td>102,35 €</td></tr>
+        <tr><td>Jun 2024</td><td>Recambis marcador verd x30 · Recambis negre x40 · Paper A4 x30 resmes</td><td>215,90 €</td></tr>
+        <tr><td>Jun 2024</td><td>Recambis marcador pissarra negre x40 (0,71€/ud)</td><td>28,40 €</td></tr>
+        <tr><td>Oct 2024</td><td>Paper Navigator A4 80g x20 resmes (5,47€/resma)</td><td>109,40 €</td></tr>
+        <tr><td>Nov 2024</td><td>Paper Navigator A4 80g x10 resmes</td><td>54,70 €</td></tr>
+        <tr><td colspan="2" style="font-weight:800;color:var(--wood-dark)">TOTAL FACTURAT 2024</td><td style="font-weight:800;color:var(--eco-dark)">637,43 €</td></tr>
+      </tbody>
+    </table>
+
+    <h3>🧹 Neteja i Higiene</h3>
+    <table style="margin-bottom:1.2rem">
+      <thead><tr><th>Data</th><th>Concepte</th><th>Import</th></tr></thead>
+      <tbody>
+        <tr><td>27/05/2024</td><td>Neteja jardí, patis i entrada · Transport i deixalleria · Descompte borsa hores licitació (30h)</td><td>375,80 €</td></tr>
+        <tr><td>20/06/2024</td><td>Paper eixugamans x10 · Paper mecha x5 · Paper WC industrial x10 · Sacs industrials x20 · Bosses petites x30 · Sabó mans 5L x3</td><td>620,05 €</td></tr>
+        <tr><td colspan="2" style="font-weight:800;color:var(--wood-dark)">TOTAL FACTURAT 2024</td><td style="font-weight:800;color:var(--eco-dark)">995,85 €</td></tr>
+      </tbody>
+    </table>
+
+    <h3>⚡ Manteniment Elèctric i Telecomunicacions</h3>
+    <table>
+      <thead><tr><th>Data</th><th>Concepte</th><th>Import</th></tr></thead>
+      <tbody>
+        <tr><td>23/05/2024</td><td>Renovació quadres QGP+OGP · 8+8 interruptors amb control lluminós · armari reserva</td><td>2.548,02 €</td></tr>
+        <tr><td>05/07/2024</td><td>Reparació urgència HVAC: compressor 400W + sonda temperatura + neteja filtres</td><td>348,48 €</td></tr>
+        <tr><td>13/09/2024</td><td>Treballs ferro i fusta — portes i barandilles malmeses (2 oficials, 5–9 set.)</td><td>1.012,98 €</td></tr>
+        <tr><td>Mensual</td><td>DIGI — Fibra 1Gb</td><td>30,00 €/mes → 360 €/any</td></tr>
+        <tr><td>Mensual</td><td>O2 — Fibra 1Gb + Mòbil 200GB</td><td>50,00 €/mes → 600 €/any</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /calculos -->
+
+
+<!-- ============================================================
+     GRÀFICS — Visualització comparativa i projeccions
+     Lògica: selector vista → comparativa anual → distribució + projecció → aigua
+     ============================================================ -->
+<div id="graficos" class="section">
+
+  <img class="sec-img" src="assets/foto-grafics.jpg" alt="Plaques solars"/>
+
+  <div class="card">
+    <h2>📈 Visualització Comparativa</h2>
+    <div class="filters" style="margin-bottom:1rem">
+      <label>Vista:</label>
+      <select id="vista-chart" onchange="updateComparativo()">
+        <option value="mensual">Mensual</option>
+        <option value="trimestral">Trimestral</option>
+      </select>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box" style="grid-column:1/-1">
+        <h4>📊 Comparativa anual — tots els indicadors (€)</h4>
+        <canvas id="ch-comparativo" style="max-height:320px"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box"><h4>🥧 Distribució del cost anual</h4><canvas id="ch-pie"></canvas></div>
+      <div class="chart-box"><h4>📉 Projecció 3 anys — base vs. −30%</h4><canvas id="ch-proyeccion"></canvas></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box" style="grid-column:1/-1">
+        <h4>💧 Consum d'aigua — variació mensual (m³)</h4>
+        <canvas id="ch-agua2" style="max-height:260px"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /graficos -->
+
+
+<!-- ============================================================
+     PLA 30% — Planificació, simulació i metodologia
+     Lògica: toggle millores → KPIs estalvi → metodologia → simulador → cronograma → indicadors
+     ============================================================ -->
+<div id="plan" class="section">
+
+  <img class="sec-img" src="assets/foto-solar2.jpg" alt="Plaques solars fotovoltaiques"/>
+
+  <!-- PLAN NAV TABS -->
+  <div class="card" style="padding:1rem 1.4rem;margin-bottom:.2rem">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <span style="font-weight:800;color:var(--wood-dark);font-size:.95rem">📌 Mostra:</span>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;flex:1">
+        <button class="plan-tab active" onclick="showPlanBlock('all',this)">🌿 Tot</button>
+        <button class="plan-tab" onclick="showPlanBlock('pb-millores',this)">🔄 Aplicar Millores</button>
+        <button class="plan-tab" onclick="showPlanBlock('pb-estalvi',this)">💰 Estalvi Estimat</button>
+        <button class="plan-tab" onclick="showPlanBlock('pb-metodologia',this)">🧮 Metodologia</button>
+        <button class="plan-tab" onclick="showPlanBlock('pb-simulador',this)">🎛️ Simulador</button>
+        <button class="plan-tab" onclick="showPlanBlock('pb-cronograma',this)">📅 Cronograma</button>
+        <button class="plan-tab" onclick="showPlanBlock('pb-indicadors',this)">📐 Indicadors</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. Toggle per aplicar millores al dashboard -->
+  <div class="card plan-block" id="pb-millores">
+    <h2>🌍 Aplicar Millores al Resum de Consum
+      <span class="badge badge-green" id="mejoras-badge-plan" style="display:none">✅ Actiu</span>
+    </h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:.8rem">
+      Activa les categories on vols veure l'impacte del −30%. Afecta els KPIs del Dashboard, els Càlculs i els Gràfics.
+    </p>
+    <div class="toggle-bar" style="flex-direction:column;align-items:flex-start;gap:1rem">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;width:100%">
+        <span class="tlbl">🔄 Aplicar Millores del Pla (−30%) per categoria:</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem">
+          <button class="btn btn-eco" onclick="applyTodasMillores(true)">✅ Totes</button>
+          <button class="btn btn-wood" onclick="applyTodasMillores(false)">✖ Cap</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem;width:100%">
+        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(64,145,108,.12);border:1.5px solid rgba(64,145,108,.35);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
+          <input type="checkbox" id="toggle-elec" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#40916c;cursor:pointer">
+          <span style="font-weight:700;color:#1b4332;font-size:.88rem">⚡ Electricitat</span>
+          <span class="badge badge-green" style="margin-left:auto">−30%</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(66,165,245,.12);border:1.5px solid rgba(66,165,245,.35);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
+          <input type="checkbox" id="toggle-agua" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer">
+          <span style="font-weight:700;color:#0d47a1;font-size:.88rem">💧 Aigua</span>
+          <span class="badge" style="background:#bbdefb;color:#0d47a1;margin-left:auto">−30%</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(107,58,42,.10);border:1.5px solid rgba(107,58,42,.3);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
+          <input type="checkbox" id="toggle-ofic" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#6b3a2a;cursor:pointer">
+          <span style="font-weight:700;color:#3b2314;font-size:.88rem">📋 Material</span>
+          <span class="badge badge-gold" style="margin-left:auto">−30%</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(156,39,176,.10);border:1.5px solid rgba(156,39,176,.3);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
+          <input type="checkbox" id="toggle-net" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#9c27b0;cursor:pointer">
+          <span style="font-weight:700;color:#4a148c;font-size:.88rem">🧹 Neteja</span>
+          <span class="badge" style="background:#f3e5f5;color:#6a1b9a;margin-left:auto">−30%</span>
+        </label>
+      </div>
+      <div id="toggle-label" style="color:#888;font-size:.83rem;font-style:italic">Selecciona les categories on vols aplicar el 30% d'estalvi</div>
+    </div>
+  </div>
+
+  <!-- 2. KPIs d'estalvi del pla -->
+  <div class="card plan-block" id="pb-estalvi">
+    <h2>🌱 Estalvi Anual Estimat — Repte del −30%</h2>
+    <p style="color:var(--text-soft);font-size:.87rem;margin-bottom:1rem">
+      Economia circular aplicada al centre educatiu. Objectius mesurables calculats sobre la línia base real 2024.
+    </p>
+    <div class="kpi-grid">
+      <div class="kpi sav"><div class="val" id="ahorro-elec-plan">—</div><div class="lbl">€ estalvi electricitat/any</div></div>
+      <div class="kpi agua"><div class="val" id="ahorro-agua-plan">—</div><div class="lbl">€ estalvi aigua/any</div></div>
+      <div class="kpi ofic"><div class="val" id="ahorro-oficina-plan">—</div><div class="lbl">€ estalvi material/any</div></div>
+      <div class="kpi limp"><div class="val" id="ahorro-limpieza-plan">—</div><div class="lbl">€ estalvi neteja/any</div></div>
+    </div>
+  </div>
+
+  <!-- 3. Metodologia de càlcul -->
+  <div class="card plan-block" id="pb-metodologia">
+    <h2>🧮 Com s'arriba a aquests resultats? Metodologia de càlcul</h2>
+    <p style="font-size:.85rem;color:var(--text-soft);margin-bottom:1rem;line-height:1.8">
+      Tots els valors d'estalvi es deriven de <strong>dades reals del centre (2024)</strong> combinades amb fórmules estàndard d'eficiència energètica.
+    </p>
+
+    <div style="border-left:4px solid var(--eco-light);padding:.8rem 1rem;margin-bottom:1rem;background:rgba(64,145,108,.05);border-radius:0 8px 8px 0">
+      <h3 style="color:#1b4332;margin-bottom:.5rem">⚡ Electricitat</h3>
+      <p style="font-size:.82rem;color:var(--text-soft);line-height:1.9">
+        <strong>Base:</strong> 85.000 kWh/any (infraestructura real: quadres QGP+OGP, HVAC, aules FP, il·luminació).<br>
+        <strong>Fórmula:</strong> <code style="background:#f0e8d8;padding:.1rem .4rem;border-radius:4px">kWh = Nº aules × (W llum + W PC) × Hores/dia × Dies/any ÷ 1.000</code><br>
+        <strong>Cost:</strong> 0,17 €/kWh · <strong>Estalvi −30%:</strong> LED alta eficiència, sensors presència, optimització HVAC.<br>
+        <strong>Resultat: 85.000 × 0,17 × 0,30 = <span style="color:var(--eco-dark)">4.335 €/any</span></strong>
+      </p>
+    </div>
+
+    <div style="border-left:4px solid var(--agua-light);padding:.8rem 1rem;margin-bottom:1rem;background:rgba(66,165,245,.05);border-radius:0 8px 8px 0">
+      <h3 style="color:#0d47a1;margin-bottom:.5rem">💧 Aigua</h3>
+      <p style="font-size:.82rem;color:var(--text-soft);line-height:1.9">
+        <strong>Base:</strong> 1.075 m³/any (mostres reals feb. 2024: 4.530 L, 7.650 L, 3.190 L → mitj. 5.123 L/dia).<br>
+        <strong>Fórmula:</strong> <code style="background:#f0e8d8;padding:.1rem .4rem;border-radius:4px">m³ = Nº persones × Litres/persona/dia × Dies lectius ÷ 1.000</code><br>
+        <strong>Cost:</strong> 2,85 €/m³ · <strong>Estalvi −30%:</strong> Temporitzadors, doble descàrrega, auditoria fuites, reutilització pluvials.<br>
+        <strong>Resultat: 1.075 × 2,85 × 0,30 = <span style="color:var(--agua)">919 €/any</span></strong>
+      </p>
+    </div>
+
+    <div style="border-left:4px solid var(--wood-tan);padding:.8rem 1rem;margin-bottom:1rem;background:rgba(107,58,42,.05);border-radius:0 8px 8px 0">
+      <h3 style="color:#3b2314;margin-bottom:.5rem">📋 Material d'Oficina</h3>
+      <p style="font-size:.82rem;color:var(--text-soft);line-height:1.9">
+        <strong>Base:</strong> 850 €/any estimats (637,43 € facturats abr–nov 2024, Lyreco).<br>
+        <strong>Fórmula:</strong> <code style="background:#f0e8d8;padding:.1rem .4rem;border-radius:4px">Cost = Resmes × 5,47 €/resma + Marcadors × 0,89 €/ud</code><br>
+        <strong>Estalvi −30%:</strong> Doble cara obligatòria (−40% paper), marcadors recàrregables Pilot Begreen, inventari centralitzat.<br>
+        <strong>Resultat: 850 × 0,30 = <span style="color:var(--wood-light)">255 €/any</span></strong>
+      </p>
+    </div>
+
+    <div style="border-left:4px solid #9c27b0;padding:.8rem 1rem;margin-bottom:1rem;background:rgba(156,39,176,.05);border-radius:0 8px 8px 0">
+      <h3 style="color:#4a148c;margin-bottom:.5rem">🧹 Neteja</h3>
+      <p style="font-size:.82rem;color:var(--text-soft);line-height:1.9">
+        <strong>Base:</strong> 1.800 €/any (995,85 € facturats 2024, estimació anual completa).<br>
+        <strong>Fórmula:</strong> <code style="background:#f0e8d8;padding:.1rem .4rem;border-radius:4px">Cost = Cost productes/mes × 12 × (Espais actius ÷ Espais base)</code><br>
+        <strong>Estalvi −30%:</strong> Productes concentrats ecològics, dosificadors automàtics, mopes microfibra, proveïdor Ecolabel.<br>
+        <strong>Resultat: 1.800 × 0,30 = <span style="color:#9c27b0">540 €/any</span></strong>
+      </p>
+    </div>
+
+    <div style="padding:.8rem 1rem;background:linear-gradient(135deg,rgba(201,168,76,.15),rgba(201,168,76,.05));border:1.5px solid var(--gold);border-radius:8px;font-size:.82rem;color:var(--text-soft);line-height:1.8">
+      <strong style="color:var(--wood-dark)">💰 Estalvi total anual (−30% totes les categories):</strong>
+      4.335 + 919 + 255 + 540 = <strong style="font-size:1.05rem;color:var(--eco-dark)">6.049 €/any</strong><br>
+      <strong style="color:var(--wood-dark)">📆 Projecció acumulada:</strong>
+      Any 1 −10% → ~2.017 € · Any 2 −20% → ~4.033 € · Any 3 −30% → ~6.049 €
+    </div>
+  </div>
+
+  <!-- 4. Simulador avançat -->
+  <div class="card plan-block" id="pb-simulador">
+    <h2>🎛️ Simulador Avançat de Paràmetres
+      <span class="badge badge-gold" id="sim-badge" style="display:none">⚙️ Personalitzat</span>
+    </h2>
+    <p style="font-size:.83rem;color:var(--text-soft);margin-bottom:1rem">
+      Ajusta els paràmetres reals del centre per veure com canvien els estalvis. Les fórmules de la metodologia s'apliquen en temps real.
+      <button class="btn btn-wood" onclick="resetSimulador()" style="margin-left:.8rem;font-size:.75rem;padding:.3rem .7rem">↺ Restaurar valors originals</button>
+    </p>
+
+    <!-- ⚡ ELECTRICITAT -->
+    <div style="border:1.5px solid rgba(64,145,108,.3);border-radius:10px;padding:1rem;margin-bottom:1rem;background:rgba(64,145,108,.05)">
+      <h3 style="color:#1b4332;margin-bottom:.8rem">⚡ Electricitat</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🏫 Nombre d'aules actives <span style="float:right;color:var(--eco-mid)" id="lbl-aules">20</span></label>
+          <input type="range" id="sim-aules" min="1" max="40" value="20" step="1" oninput="document.getElementById('lbl-aules').textContent=this.value;recalcSim()" style="width:100%;accent-color:#40916c;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>1</span><span>40</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">⏱️ Hores d'ús diari <span style="float:right;color:var(--eco-mid)" id="lbl-hores">8</span></label>
+          <input type="range" id="sim-hores" min="1" max="16" value="8" step="0.5" oninput="document.getElementById('lbl-hores').textContent=this.value;recalcSim()" style="width:100%;accent-color:#40916c;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>1h</span><span>16h</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">💡 Potència il·luminació/aula <span style="float:right;color:var(--eco-mid)" id="lbl-potlum">500W</span></label>
+          <input type="range" id="sim-potlum" min="50" max="2000" value="500" step="50" oninput="document.getElementById('lbl-potlum').textContent=this.value+'W';recalcSim()" style="width:100%;accent-color:#40916c;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>50W</span><span>2000W</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🖥️ Potència equips informàtics/aula <span style="float:right;color:var(--eco-mid)" id="lbl-potpc">800W</span></label>
+          <input type="range" id="sim-potpc" min="100" max="5000" value="800" step="100" oninput="document.getElementById('lbl-potpc').textContent=this.value+'W';recalcSim()" style="width:100%;accent-color:#40916c;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>100W</span><span>5000W</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📅 Dies lectius/any <span style="float:right;color:var(--eco-mid)" id="lbl-dies">180</span></label>
+          <input type="range" id="sim-dies" min="60" max="260" value="180" step="5" oninput="document.getElementById('lbl-dies').textContent=this.value;recalcSim()" style="width:100%;accent-color:#40916c;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>60</span><span>260</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📉 % Reducció aplicada <span style="float:right;color:var(--eco-mid)" id="lbl-redu-elec">30%</span></label>
+          <input type="range" id="sim-redu-elec" min="0" max="60" value="30" step="1" oninput="document.getElementById('lbl-redu-elec').textContent=this.value+'%';recalcSim()" style="width:100%;accent-color:#40916c;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>0%</span><span>60%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 💧 AIGUA -->
+    <div style="border:1.5px solid rgba(66,165,245,.3);border-radius:10px;padding:1rem;margin-bottom:1rem;background:rgba(66,165,245,.05)">
+      <h3 style="color:#0d47a1;margin-bottom:.8rem">💧 Aigua</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">👤 Alumnes / persones al centre <span style="float:right;color:#1565c0" id="lbl-alumnes">400</span></label>
+          <input type="range" id="sim-alumnes" min="50" max="1200" value="400" step="10" oninput="document.getElementById('lbl-alumnes').textContent=this.value;recalcSim()" style="width:100%;accent-color:#1565c0;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>50</span><span>1200</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🚿 Litres/persona/dia <span style="float:right;color:#1565c0" id="lbl-litres">12L</span></label>
+          <input type="range" id="sim-litres" min="2" max="40" value="12" step="1" oninput="document.getElementById('lbl-litres').textContent=this.value+'L';recalcSim()" style="width:100%;accent-color:#1565c0;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>2L</span><span>40L</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📉 % Reducció aplicada <span style="float:right;color:#1565c0" id="lbl-redu-agua">30%</span></label>
+          <input type="range" id="sim-redu-agua" min="0" max="60" value="30" step="1" oninput="document.getElementById('lbl-redu-agua').textContent=this.value+'%';recalcSim()" style="width:100%;accent-color:#1565c0;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>0%</span><span>60%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📋 MATERIAL -->
+    <div style="border:1.5px solid rgba(107,58,42,.3);border-radius:10px;padding:1rem;margin-bottom:1rem;background:rgba(107,58,42,.05)">
+      <h3 style="color:#3b2314;margin-bottom:.8rem">📋 Material d'Oficina</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📄 Resmes de paper/any <span style="float:right;color:#6b3a2a" id="lbl-resmes">200</span></label>
+          <input type="range" id="sim-resmes" min="10" max="600" value="200" step="10" oninput="document.getElementById('lbl-resmes').textContent=this.value;recalcSim()" style="width:100%;accent-color:#6b3a2a;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>10</span><span>600</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🖊️ Marcadors/any <span style="float:right;color:#6b3a2a" id="lbl-marcadors">300</span></label>
+          <input type="range" id="sim-marcadors" min="10" max="1000" value="300" step="10" oninput="document.getElementById('lbl-marcadors').textContent=this.value;recalcSim()" style="width:100%;accent-color:#6b3a2a;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>10</span><span>1000</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📉 % Reducció aplicada <span style="float:right;color:#6b3a2a" id="lbl-redu-ofic">30%</span></label>
+          <input type="range" id="sim-redu-ofic" min="0" max="60" value="30" step="1" oninput="document.getElementById('lbl-redu-ofic').textContent=this.value+'%';recalcSim()" style="width:100%;accent-color:#6b3a2a;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>0%</span><span>60%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🧹 NETEJA -->
+    <div style="border:1.5px solid rgba(156,39,176,.3);border-radius:10px;padding:1rem;margin-bottom:1rem;background:rgba(156,39,176,.05)">
+      <h3 style="color:#4a148c;margin-bottom:.8rem">🧹 Neteja</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🏢 Espais nets/dia <span style="float:right;color:#9c27b0" id="lbl-espais">15</span></label>
+          <input type="range" id="sim-espais" min="1" max="60" value="15" step="1" oninput="document.getElementById('lbl-espais').textContent=this.value;recalcSim()" style="width:100%;accent-color:#9c27b0;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>1</span><span>60</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🧴 Cost productes/mes <span style="float:right;color:#9c27b0" id="lbl-costnet">150€</span></label>
+          <input type="range" id="sim-costnet" min="20" max="500" value="150" step="10" oninput="document.getElementById('lbl-costnet').textContent=this.value+'€';recalcSim()" style="width:100%;accent-color:#9c27b0;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>20€</span><span>500€</span></div>
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📉 % Reducció aplicada <span style="float:right;color:#9c27b0" id="lbl-redu-net">30%</span></label>
+          <input type="range" id="sim-redu-net" min="0" max="60" value="30" step="1" oninput="document.getElementById('lbl-redu-net').textContent=this.value+'%';recalcSim()" style="width:100%;accent-color:#9c27b0;margin-top:.3rem">
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#999"><span>0%</span><span>60%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultats simulació -->
+    <div style="background:linear-gradient(135deg,rgba(27,67,50,.08),rgba(64,145,108,.08));border:2px solid rgba(64,145,108,.3);border-radius:10px;padding:1rem">
+      <h3 style="color:#1b4332;margin-bottom:.8rem">📊 Resultat de la Simulació</h3>
+      <div class="kpi-grid" id="kpi-sim"></div>
+      <div style="margin-top:.8rem;font-size:.78rem;color:var(--text-soft);line-height:1.8" id="sim-detall"></div>
+    </div>
+  </div>
+
+  <!-- 5. Cronograma 3 anys -->
+  <div class="card plan-block" id="pb-cronograma">
+    <h2>📅 Cronograma d'Implementació</h2>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#4caf50"></div>
+        <div class="tl-content">
+          <h4>🟢 Any 1 (2025) — Diagnòstic i Quick Wins · Objectiu: −10%</h4>
+          <p>
+            <strong>⚡ Electricitat:</strong> Substituir il·luminació restant per LED d'alta eficiència (estalvi 60–70%). Sensors de presència en passadissos i serveis. Revisar programació HVAC per horaris lectius.<br>
+            <strong>💧 Aigua:</strong> Auditoria de fuites. Aixetes amb temporitzador i fluxors eficients en banys.<br>
+            <strong>📋 Material:</strong> Impressió a doble cara obligatòria. Inventari centralitzat. Continuar amb Pilot Begreen recàrregables.<br>
+            <strong>🧹 Neteja:</strong> Canvi a productes concentrats. Dosificadors per a sabons.<br>
+            <strong>📐 KPI:</strong> −10% respecte a línia base 2024. Informe semestral intern.
+          </p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#ff9800"></div>
+        <div class="tl-content">
+          <h4>🟡 Any 2 (2026) — Inversió i Sistemes · Objectiu: −20% acumulat</h4>
+          <p>
+            <strong>⚡ Electricitat:</strong> Estudi de viabilitat d'autoconsum fotovoltaic a la coberta. Monitoratge energètic en temps real per planta.<br>
+            <strong>💧 Aigua:</strong> Reutilització d'aigües grises per a reg del jardí. Comptadors per zona.<br>
+            <strong>📋 Material:</strong> Plataforma digital per a apunts (reducció paper 40%). Compra per lots anuals amb proveïdor certificat.<br>
+            <strong>🧹 Neteja:</strong> Contracte amb proveïdor Ecolabel. Mopes reutilitzables en comptes de fungibles.<br>
+            <strong>📐 KPI:</strong> −20% acumulat. Certificació ISO 14001 en procés.
+          </p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#e53935"></div>
+        <div class="tl-content">
+          <h4>🔴 Any 3 (2027) — Consolidació i Economia Circular · Objectiu: −30% acumulat</h4>
+          <p>
+            <strong>⚡ Electricitat:</strong> Activació de plaques solars. Compensació d'emissions residuals amb crèdits de carboni.<br>
+            <strong>💧 Aigua:</strong> Jardí de baix consum (plantes autòctones). Petjada hídrica neutra en zones exteriors.<br>
+            <strong>📋 Material:</strong> Borsa de material compartit entre departaments. Devolució de cartutxos exhaurits al proveïdor (economia circular).<br>
+            <strong>🧹 Neteja:</strong> Compostatge de residus orgànics. Reducció de residus plàstics en un 50%.<br>
+            <strong>📐 KPI:</strong> −30% impacte ambiental total. Publicació Memòria de Sostenibilitat anual.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Taula indicadors de seguiment -->
+  <div class="card plan-block" id="pb-indicadors">
+    <h2>📐 Indicadors de Seguiment per Any</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Indicador</th><th>Base 2024</th>
+          <th>Obj. Any 1 (−10%)</th><th>Obj. Any 2 (−20%)</th><th>Obj. Any 3 (−30%)</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-plan"></tbody>
+    </table>
+  </div>
+
+  <img class="sec-img" src="assets/foto-natura.jpg" alt="Medi ambient i sostenibilitat" style="height:160px"/>
+
+</div><!-- /plan -->
+
+
+<!-- ============================================================
+     CONSELLS — Bones pràctiques i normativa
+     Lògica: consells per categoria → recursos i normativa
+     ============================================================ -->
+<div id="consejos" class="section">
+
+  <img class="sec-img" src="assets/foto-consells.jpg" alt="Consells sostenibilitat"/>
+
+  <div class="card">
+    <h2>💡 Bones Pràctiques per Categoria</h2>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <h4>⚡ Electricitat</h4>
+        <ul>
+          <li>Instal·lar luminàries LED d'alta eficiència (estalvi 60–70%)</li>
+          <li>Sensors de presència en zones de pas</li>
+          <li>Apagar equips informàtics en acabar les classes</li>
+          <li>Programar climatització per calendari lectiu</li>
+          <li>Auditoria energètica anual certificada</li>
+          <li>Formació al professorat en bones pràctiques</li>
+          <li>Autoconsum fotovoltaic a la coberta (any 2)</li>
+        </ul>
+      </div>
+      <div class="tip-card agua">
+        <h4>💧 Aigua</h4>
+        <ul>
+          <li>Revisió periòdica d'instal·lacions per detectar fuites</li>
+          <li>Aixetes amb aeradors i temporitzadors en banys</li>
+          <li>Cisternes de doble descàrrega</li>
+          <li>Reutilització d'aigües pluvials per a reg</li>
+          <li>Plantes autòctones de baix consum en jardí</li>
+          <li>Comptadors per planta per identificar anomalies</li>
+          <li>Sistemes de rec per degoteig en zones verdes</li>
+        </ul>
+      </div>
+      <div class="tip-card ofic">
+        <h4>📋 Material d'Oficina</h4>
+        <ul>
+          <li>Impressió a doble cara i escala de grisos</li>
+          <li>Marcadors recàrregables Pilot Begreen (ja en ús!)</li>
+          <li>Digitalitzar comunicacions internes i apunts</li>
+          <li>Compra agrupada per cursos (estalvi per volum)</li>
+          <li>Retornar residus al proveïdor (economia circular)</li>
+          <li>Paper reciclat certificat FSC</li>
+          <li>Inventari centralitzat per evitar sobrecompres</li>
+        </ul>
+      </div>
+      <div class="tip-card limp">
+        <h4>🧹 Productes de Neteja</h4>
+        <ul>
+          <li>Concentrats ecològics (menys embalatge, mateixa eficàcia)</li>
+          <li>Dosificadors automàtics per a sabons</li>
+          <li>Mopes i baietes de microfibra reutilitzables</li>
+          <li>Paper WC i eixugamans reciclat certificat</li>
+          <li>Sacs compostables en comptes de plàstic</li>
+          <li>Proveïdors amb certificació Ecolabel EU</li>
+          <li>Compostatge de residus orgànics del centre</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🌐 Recursos i Normativa de Referència</h2>
+    <img src="assets/foto-normativa.jpg" alt="Normativa energètica"
+         style="width:100%;height:110px;object-fit:cover;border-radius:8px;margin-bottom:.9rem"/>
+    <p style="font-size:.85rem;line-height:2;color:var(--text-soft)">
+      ▸ <strong>Directiva 2023/1791 UE</strong> — Eficiència energètica en edificis públics<br>
+      ▸ <strong>Reial Decret 390/2021</strong> — Certificació energètica d'edificis<br>
+      ▸ <strong>ICAEN</strong> — Institut Català d'Energia: subvencions per a centres educatius<br>
+      ▸ <strong>ISO 14001</strong> — Sistemes de gestió ambiental<br>
+      ▸ <strong>Agenda 2030 ODS 7</strong> — Energia assequible i no contaminant<br>
+      ▸ <strong>Ecolabel EU</strong> — Etiqueta ecològica per a productes de neteja
+    </p>
+  </div>
+
+</div><!-- /consejos -->
+
+</main>
+
+<footer>
+  🌿 <span>Institut Tecnològic de Barcelona</span> · Calculadora de Ahorro Energético · Fase 3 · 2025<br>
+  <span style="opacity:.6;font-size:.72rem">Desenvolupat amb dades reals del centre · Economia circular · ODS 7 i 12</span>
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>

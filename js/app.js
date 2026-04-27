@@ -759,202 +759,120 @@ function exportPDF() {
    INICIALITZACIÓ
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => { updateAll(); recalcSim(); });
-/* ============================================================
-   AUDITORIA IN SITU — Contrast dades teòriques vs. reals
-   ============================================================ */
 
-// Valors teòrics de la calculadora (base de comparació)
+/* ============================================================
+   AUDITORIA IN SITU — Contrast teòric vs. real (Càlculs)
+   ============================================================ */
 const TEORICS = {
-  elec: {
-    potActiu: (20 * (500 + 800)),   // 20 aules × (llum+PC) = 26.000W
-    potSB:    (20 * 30),            // standby estimat ~30W/aula
-    hores:    8,
-    dies:     180,
-    kwhAny:   DB.electricitat.consum_anual_kwh
-  },
-  agua: {
-    persones: 400,
-    litres:   12,
-    dies:     180,
-    m3Any:    DB.aigua.consum_anual_m3
-  },
-  material: {
-    resmesAny:    200,
-    marcadorsAny: 300
-  }
+  potActiuW: 20 * (500 + 800),   // 20 aules × (llum+PC)
+  potSBW:    20 * 30,
+  hores: 8, dies: 180,
+  kwhAny: DB.electricitat.consum_anual_kwh,
+  persones: 400, litresDia: 12,
+  m3Any: DB.aigua.consum_anual_m3,
+  resmesAny: 200, marcadorsAny: 300
 };
 
 function gv(id) {
   const el = document.getElementById(id);
-  if (!el || el.value === '') return null;
-  return parseFloat(el.value);
-}
-
-function sv(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val !== null ? val.toLocaleString('ca-ES') + ' W' : '—';
+  return (el && el.value !== '') ? parseFloat(el.value) : null;
 }
 
 function calcAudit() {
-  // --- Fila per fila de la taula ---
-  const equips = [
-    { n:'a-pc-n',  w:'a-pc-w',  sb:'a-pc-sb',  tot:'a-pc-tot',  sbt:'a-pc-sbtot'  },
-    { n:'a-mon-n', w:'a-mon-w', sb:'a-mon-sb', tot:'a-mon-tot', sbt:'a-mon-sbtot' },
-    { n:'a-llum-n',w:'a-llum-w',sb:'a-llum-sb',tot:'a-llum-tot',sbt:'a-llum-sbtot'},
-    { n:'a-alt-n', w:'a-alt-w', sb:'a-alt-sb', tot:'a-alt-tot', sbt:'a-alt-sbtot' }
-  ];
-
-  let totalActiu = 0, totalSB = 0;
-  equips.forEach(eq => {
-    const n = gv(eq.n), w = gv(eq.w), sb = gv(eq.sb);
-    const ta = (n !== null && w  !== null) ? n * w  : null;
-    const ts = (n !== null && sb !== null) ? n * sb : null;
-    document.getElementById(eq.tot).textContent = ta !== null ? ta.toLocaleString('ca-ES') + ' W' : '—';
-    document.getElementById(eq.sbt).textContent = ts !== null ? ts.toLocaleString('ca-ES') + ' W' : '—';
-    if (ta !== null) totalActiu += ta;
-    if (ts !== null) totalSB    += ts;
-  });
-
-  document.getElementById('a-tot-actiu').textContent = totalActiu > 0 ? totalActiu.toLocaleString('ca-ES') + ' W' : '—';
-  document.getElementById('a-tot-sb').textContent    = totalSB    > 0 ? totalSB.toLocaleString('ca-ES')    + ' W' : '—';
-
-  // --- kWh reals de l'aula ---
-  const horesReal = gv('a-hores-real');
-  const diesReal  = gv('a-dies-real');
-  const naulesReal= gv('a-naules-real') || 1;
-
-  // --- Aigua real ---
-  const persReal  = gv('a-pers-real');
-  const litresReal= gv('a-litres-real');
-  const compIni   = gv('a-comp-ini');
-  const compFi    = gv('a-comp-fi');
-  const m3Comp    = (compIni !== null && compFi !== null) ? +(compFi - compIni).toFixed(3) : null;
-  const litresCalc= (persReal !== null && litresReal !== null)
-    ? +(persReal * litresReal / 1000).toFixed(3) : null;  // m3/dia
-
-  // --- Material real ---
-  const resmesReal  = gv('a-resmes-real');
-  const marcReal    = gv('a-marc-real');
-  const mesosStock  = gv('a-mesos-stock') || 3;
-
-  // Construir contrast
   const rows = [];
 
-  // ⚡ Electricitat — kWh/dia estimats vs reals
-  if (totalActiu > 0 && horesReal !== null) {
-    const kwhRealDia   = +(totalActiu * naulesReal * horesReal / 1000).toFixed(1);
-    const kwhTeoDia    = +(TEORICS.elec.potActiu * TEORICS.elec.hores / 1000).toFixed(1);
-    rows.push({
-      label: '⚡ Consum actiu aula/dia',
-      unit: 'kWh/dia',
-      teoric: kwhTeoDia,
-      real: kwhRealDia
-    });
-  }
-  if (totalSB > 0 && diesReal !== null) {
-    const wsbRealAny  = +(totalSB * naulesReal * 24 * diesReal / 1000).toFixed(0);
-    const wsbTeoAny   = +(TEORICS.elec.potSB * 24 * TEORICS.elec.dies / 1000).toFixed(0);
-    rows.push({
-      label: '⚡ Consum standby/any',
-      unit: 'kWh/any',
-      teoric: wsbTeoAny,
-      real: wsbRealAny
-    });
+  // ⚡ kWh/dia actiu
+  const equips = gv('a-equips'), watts = gv('a-watts'), hores = gv('a-hores');
+  if (equips !== null && watts !== null && hores !== null) {
+    const realKwh  = +(equips * watts * hores / 1000).toFixed(2);
+    const teoKwh   = +(TEORICS.potActiuW * TEORICS.hores / 1000).toFixed(2);
+    rows.push({ label: '⚡ Consum actiu aula/dia', unit: 'kWh', teoric: teoKwh, real: realKwh });
   }
 
-  // 💧 Aigua — m³/dia
-  if (litresCalc !== null) {
-    const m3TeosDia = +(TEORICS.agua.persones * TEORICS.agua.litres / 1000).toFixed(3);
-    rows.push({
-      label: '💧 Consum aigua/dia (càlcul)',
-      unit: 'm³/dia',
-      teoric: m3TeosDia,
-      real: litresCalc
-    });
-  }
-  if (m3Comp !== null) {
-    const m3TeosDia = +(TEORICS.agua.persones * TEORICS.agua.litres / 1000).toFixed(3);
-    rows.push({
-      label: '💧 Consum aigua/dia (comptador)',
-      unit: 'm³/dia',
-      teoric: m3TeosDia,
-      real: m3Comp
-    });
+  // ⚡ kWh/any standby
+  const sb = gv('a-standby');
+  if (equips !== null && sb !== null) {
+    const realSB = +(equips * sb * 24 * TEORICS.dies / 1000).toFixed(0);
+    const teoSB  = +(TEORICS.potSBW * 24 * TEORICS.dies / 1000).toFixed(0);
+    rows.push({ label: '⚡ Standby anual', unit: 'kWh/any', teoric: teoSB, real: realSB });
   }
 
-  // 📋 Material — consum mensual extrapolat
-  if (resmesReal !== null) {
-    const resmesTeorMes = +(TEORICS.material.resmesAny / 12).toFixed(1);
-    const resmesRealMes = +(resmesReal / mesosStock).toFixed(1);
-    rows.push({
-      label: '📋 Resmes paper/mes',
-      unit: 'resmes/mes',
-      teoric: resmesTeorMes,
-      real: resmesRealMes
-    });
-  }
-  if (marcReal !== null) {
-    const marcTeorMes = +(TEORICS.material.marcadorsAny / 12).toFixed(1);
-    const marcRealMes = +(marcReal / mesosStock).toFixed(1);
-    rows.push({
-      label: '🖊️ Marcadors/mes',
-      unit: 'ud/mes',
-      teoric: marcTeorMes,
-      real: marcRealMes
-    });
+  // 💧 m³/dia per càlcul
+  const pers = gv('a-pers'), lit = gv('a-litres');
+  if (pers !== null && lit !== null) {
+    const realM3  = +(pers * lit / 1000).toFixed(3);
+    const teoM3   = +(TEORICS.persones * TEORICS.litresDia / 1000).toFixed(3);
+    rows.push({ label: '💧 Consum aigua/dia (càlcul)', unit: 'm³/dia', teoric: teoM3, real: realM3 });
   }
 
-  // Render
+  // 💧 m³/dia per comptador
+  const ci = gv('a-comp-ini'), cf = gv('a-comp-fi');
+  if (ci !== null && cf !== null) {
+    const realComp = +(cf - ci).toFixed(3);
+    const teoM3    = +(TEORICS.persones * TEORICS.litresDia / 1000).toFixed(3);
+    rows.push({ label: '💧 Consum aigua/dia (comptador)', unit: 'm³/dia', teoric: teoM3, real: realComp });
+  }
+
+  // 📋 Resmes/mes
+  const resmes = gv('a-resmes'), mesos = gv('a-mesos') || 3;
+  if (resmes !== null) {
+    const realRes = +(resmes / mesos).toFixed(1);
+    const teoRes  = +(TEORICS.resmesAny / 12).toFixed(1);
+    rows.push({ label: '📋 Resmes paper/mes', unit: 'resmes', teoric: teoRes, real: realRes });
+  }
+
+  // 🖊️ Marcadors/mes
+  const marc = gv('a-marc');
+  if (marc !== null) {
+    const realMarc = +(marc / mesos).toFixed(1);
+    const teoMarc  = +(TEORICS.marcadorsAny / 12).toFixed(1);
+    rows.push({ label: '🖊️ Marcadors/mes', unit: 'ud', teoric: teoMarc, real: realMarc });
+  }
+
   const out = document.getElementById('contrast-output');
+  if (!out) return;
+
   if (rows.length === 0) {
-    out.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-soft);font-size:.88rem">⬆️ Introdueix dades per veure el contrast automàtic</div>';
+    out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-soft);font-size:.85rem">⬆️ Introdueix dades per veure el contrast automàtic</div>';
     return;
   }
 
-  let html = `
-    <div class="contrast-row contrast-head">
-      <div>Indicador</div><div style="text-align:right">Teòric</div><div style="text-align:right">Real (mesurat)</div><div style="text-align:center">Desviació</div>
-    </div>`;
+  let html = `<div class="contrast-row contrast-head">
+    <div>Indicador</div><div style="text-align:right">Teòric</div>
+    <div style="text-align:right">Real mesurat</div><div style="text-align:center">Desviació</div>
+  </div>`;
 
+  const devs = [];
   rows.forEach(r => {
-    const dev = r.teoric > 0 ? +((r.real - r.teoric) / r.teoric * 100).toFixed(1) : null;
-    const devAbs = Math.abs(dev);
-    const cls = dev === null ? '' : devAbs <= 15 ? 'dev-ok' : devAbs <= 30 ? 'dev-warn' : 'dev-bad';
-    const icon = dev === null ? '—' : dev > 0 ? '▲' : '▼';
-    const label = dev === null ? '—' : `${icon} ${devAbs}%`;
-    const hint = dev === null ? '' : devAbs <= 15
-      ? '✅ Dada fiable' : devAbs <= 30
-      ? '⚠️ Reviseu la hipòtesi' : '❌ Sobreestimació / infraestimació important';
-    const barColor = devAbs <= 15 ? '#40916c' : devAbs <= 30 ? '#e65100' : '#c62828';
-    const barW = Math.min(100, devAbs * 2);
-
-    html += `
-      <div class="contrast-row">
-        <div>
-          <div style="font-weight:700;color:var(--text)">${r.label}</div>
-          <div style="font-size:.74rem;color:var(--text-soft)">${hint}</div>
-          <div class="dev-bar-wrap"><div class="dev-bar" style="width:${barW}%;background:${barColor}"></div></div>
-        </div>
-        <div style="text-align:right;color:var(--text-soft)">${r.teoric.toLocaleString('ca-ES')} <span style="font-size:.72rem">${r.unit}</span></div>
-        <div style="text-align:right;font-weight:700;color:var(--text)">${r.real.toLocaleString('ca-ES')} <span style="font-size:.72rem">${r.unit}</span></div>
-        <div style="text-align:center" class="${cls}">${label}</div>
-      </div>`;
+    const dev    = r.teoric > 0 ? +((r.real - r.teoric) / r.teoric * 100).toFixed(1) : null;
+    const devAbs = dev !== null ? Math.abs(dev) : 0;
+    if (dev !== null) devs.push(devAbs);
+    const cls   = dev === null ? '' : devAbs <= 15 ? 'dev-ok' : devAbs <= 30 ? 'dev-warn' : 'dev-bad';
+    const arrow = dev === null ? '—' : dev > 0 ? '▲' : '▼';
+    const hint  = dev === null ? '' : devAbs <= 15 ? '✅ Fiable' : devAbs <= 30 ? '⚠️ Reviseu' : '❌ Desviació alta';
+    const barC  = devAbs <= 15 ? '#40916c' : devAbs <= 30 ? '#e65100' : '#c62828';
+    html += `<div class="contrast-row">
+      <div>
+        <div style="font-weight:700;color:var(--text)">${r.label}</div>
+        <div style="font-size:.72rem;color:var(--text-soft)">${hint}</div>
+        <div class="dev-bar-wrap"><div class="dev-bar" style="width:${Math.min(100,devAbs*2)}%;background:${barC}"></div></div>
+      </div>
+      <div style="text-align:right;color:var(--text-soft)">${r.teoric.toLocaleString('ca-ES')} <span style="font-size:.7rem">${r.unit}</span></div>
+      <div style="text-align:right;font-weight:700;color:var(--text)">${r.real.toLocaleString('ca-ES')} <span style="font-size:.7rem">${r.unit}</span></div>
+      <div style="text-align:center" class="${cls}">${arrow} ${dev !== null ? Math.abs(dev)+'%' : '—'}</div>
+    </div>`;
   });
 
-  // Resum global
-  const totalDevs = rows.filter(r => r.teoric > 0).map(r => Math.abs((r.real - r.teoric) / r.teoric * 100));
-  const avgDev = totalDevs.length > 0 ? +(totalDevs.reduce((a,b) => a+b,0) / totalDevs.length).toFixed(1) : null;
-  const globalCls = avgDev <= 15 ? 'badge-green' : avgDev <= 30 ? 'badge-gold' : 'badge-red';
-  const globalTxt = avgDev <= 15 ? '✅ Calculadora fiable' : avgDev <= 30 ? '⚠️ Recomana revisió' : '❌ Dades teòriques poc fiables';
-
-  if (avgDev !== null) {
-    html += `
-      <div style="margin-top:.8rem;padding:.8rem 1rem;background:rgba(64,145,108,.07);border-radius:8px;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-        <span style="font-size:.85rem;font-weight:700;color:var(--wood-dark)">Desviació mitjana global:</span>
-        <span style="font-size:1.2rem;font-weight:800;color:var(--eco-dark)">${avgDev}%</span>
-        <span class="badge ${globalCls}">${globalTxt}</span>
-        <span style="font-size:.78rem;color:var(--text-soft);margin-left:auto">Basat en ${rows.length} indicadors contrastats</span>
-      </div>`;
+  if (devs.length > 0) {
+    const avg = +(devs.reduce((a,b)=>a+b,0)/devs.length).toFixed(1);
+    const gc  = avg <= 15 ? 'badge-green' : avg <= 30 ? 'badge-gold' : 'badge-red';
+    const gt  = avg <= 15 ? '✅ Calculadora fiable' : avg <= 30 ? '⚠️ Recomana revisió' : '❌ Dades teòriques poc fiables';
+    html += `<div style="padding:.75rem 1rem;background:rgba(64,145,108,.07);display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+      <span style="font-size:.83rem;font-weight:700;color:var(--wood-dark)">Desviació mitjana:</span>
+      <span style="font-size:1.1rem;font-weight:800;color:var(--eco-dark)">${avg}%</span>
+      <span class="badge ${gc}">${gt}</span>
+      <span style="font-size:.75rem;color:var(--text-soft);margin-left:auto">${devs.length} indicadors contrastats</span>
+    </div>`;
   }
 
   out.innerHTML = html;
@@ -962,59 +880,5 @@ function calcAudit() {
 
 function clearAudit() {
   document.querySelectorAll('.audit-in').forEach(el => el.value = '');
-  document.getElementById('audit-notes').value = '';
   calcAudit();
-  // Reset table cells
-  ['a-pc-tot','a-pc-sbtot','a-mon-tot','a-mon-sbtot','a-llum-tot','a-llum-sbtot',
-   'a-alt-tot','a-alt-sbtot','a-tot-actiu','a-tot-sb'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '—';
-  });
-}
-
-function exportAuditPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  let y = 20;
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(16);
-  doc.text('Informe d\'Auditoria In Situ — ITB', 20, y); y += 10;
-  doc.setFontSize(10); doc.setFont('helvetica','normal');
-  doc.text('Data: ' + new Date().toLocaleDateString('ca-ES'), 20, y); y += 10;
-
-  doc.setFont('helvetica','bold');
-  doc.text('Inventari Energetic Aula:', 20, y); y += 7;
-  doc.setFont('helvetica','normal');
-  const equips = [
-    ['Ordinadors', 'a-pc-n','a-pc-w','a-pc-sb'],
-    ['Monitors',   'a-mon-n','a-mon-w','a-mon-sb'],
-    ['Llums',      'a-llum-n','a-llum-w','a-llum-sb'],
-    ['Altres',     'a-alt-n','a-alt-w','a-alt-sb']
-  ];
-  equips.forEach(([name,ni,wi,sbi]) => {
-    const n=gv(ni),w=gv(wi),sb=gv(sbi);
-    if (n!==null) doc.text(`  ${name}: ${n} ud · ${w||'—'} W/ud · Standby: ${sb||'—'} W/ud`, 20, y), y+=6;
-  });
-
-  const hores=gv('a-hores-real'), dies=gv('a-dies-real'), naules=gv('a-naules-real');
-  if (hores||dies) { doc.text(`  Hores us/dia: ${hores||'—'} · Dies lectius: ${dies||'—'} · Aules auditades: ${naules||1}`, 20, y); y+=8; }
-
-  doc.setFont('helvetica','bold');
-  doc.text('Mesurament Aigua:', 20, y); y += 7;
-  doc.setFont('helvetica','normal');
-  const pers=gv('a-pers-real'),lit=gv('a-litres-real'),ci=gv('a-comp-ini'),cf=gv('a-comp-fi');
-  if (pers) doc.text(`  Persones: ${pers} · Litres/persona/dia: ${lit||'—'}`, 20, y), y+=6;
-  if (ci&&cf) doc.text(`  Comptador: ${ci} → ${cf} m3 (diferencia: ${(cf-ci).toFixed(3)} m3)`, 20, y), y+=8;
-
-  const notes = document.getElementById('audit-notes').value;
-  if (notes) {
-    doc.setFont('helvetica','bold');
-    doc.text('Notes i observacions:', 20, y); y+=7;
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(9);
-    const lines = doc.splitTextToSize(notes, 170);
-    doc.text(lines, 20, y); y += lines.length * 5 + 5;
-  }
-
-  doc.save('auditoria-itb-' + new Date().toISOString().slice(0,10) + '.pdf');
 }

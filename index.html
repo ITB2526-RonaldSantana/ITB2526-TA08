@@ -62,25 +62,6 @@
 .dev-bad { color:#c62828;font-weight:800; }
 .dev-bar-wrap { height:6px;background:rgba(168,110,60,.15);border-radius:3px;margin-top:3px; }
 .dev-bar { height:6px;border-radius:3px;transition:width .4s; }
-
-/* Contrast table */
-.contrast-row {
-  display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
-  gap:.5rem;align-items:center;
-  padding:.6rem .75rem;
-  border-bottom:1px solid rgba(168,110,60,.12);
-  font-size:.81rem;
-}
-.contrast-row:last-child{border-bottom:none}
-.contrast-head{
-  background:linear-gradient(135deg,var(--wood-dark),var(--wood-mid));
-  color:var(--wood-cream);font-weight:700;font-size:.76rem;
-}
-.dev-ok  {color:#1b5e20;font-weight:800}
-.dev-warn{color:#e65100;font-weight:800}
-.dev-bad {color:#c62828;font-weight:800}
-.dev-bar-wrap{height:5px;background:rgba(168,110,60,.15);border-radius:3px;margin-top:3px}
-.dev-bar{height:5px;border-radius:3px;transition:width .3s}
 </style>
 </head>
 <body>
@@ -213,98 +194,6 @@
     </table>
   </div>
 
-
-  <!-- Auditoria In Situ — Contrast teòric vs. real -->
-  <div class="card">
-    <h2>🔍 Auditoria In Situ — Contrast Teòric vs. Real</h2>
-    <p style="font-size:.83rem;color:var(--text-soft);margin-bottom:1rem;line-height:1.7">
-      Introdueix les dades mesurades físicament al centre. La calculadora les compara automàticament
-      amb les estimacions teòriques i indica si estan sobreestimades o infraestimades.
-    </p>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1rem">
-
-      <!-- ⚡ Electricitat -->
-      <div style="border:1.5px solid rgba(64,145,108,.3);border-radius:10px;padding:.9rem;background:rgba(64,145,108,.04)">
-        <h3 style="color:#1b4332;margin-bottom:.7rem;font-size:.9rem">⚡ Electricitat — Aula real</h3>
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Equips totals comptats (PC+monitors+llums)
-            <input type="number" class="audit-in" id="a-equips" min="0" placeholder="ex: 52" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(64,145,108,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">W mitjans per equip (etiqueta)
-            <input type="number" class="audit-in" id="a-watts" min="0" placeholder="ex: 145" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(64,145,108,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">W standby per equip
-            <input type="number" class="audit-in" id="a-standby" min="0" placeholder="ex: 4" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(64,145,108,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Hores ús real/dia
-            <input type="number" class="audit-in" id="a-hores" min="0" max="16" step="0.5" placeholder="ex: 6.5" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(64,145,108,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-        </div>
-      </div>
-
-      <!-- 💧 Aigua -->
-      <div style="border:1.5px solid rgba(66,165,245,.3);border-radius:10px;padding:.9rem;background:rgba(66,165,245,.04)">
-        <h3 style="color:#0d47a1;margin-bottom:.7rem;font-size:.9rem">💧 Aigua — Mesurament directe</h3>
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Persones comptades al centre
-            <input type="number" class="audit-in" id="a-pers" min="0" placeholder="ex: 385" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(66,165,245,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Litres/persona/dia (aforament real)
-            <input type="number" class="audit-in" id="a-litres" min="0" placeholder="ex: 9" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(66,165,245,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Lectura comptador inici dia (m³)
-            <input type="number" class="audit-in" id="a-comp-ini" min="0" step="0.001" placeholder="ex: 1234.500" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(66,165,245,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Lectura comptador final dia (m³)
-            <input type="number" class="audit-in" id="a-comp-fi" min="0" step="0.001" placeholder="ex: 1239.200" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(66,165,245,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-        </div>
-      </div>
-
-      <!-- 📋 Material -->
-      <div style="border:1.5px solid rgba(107,58,42,.3);border-radius:10px;padding:.9rem;background:rgba(107,58,42,.04)">
-        <h3 style="color:#3b2314;margin-bottom:.7rem;font-size:.9rem">📋 Material — Inventari magatzem</h3>
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Resmes de paper al magatzem
-            <input type="number" class="audit-in" id="a-resmes" min="0" placeholder="ex: 47" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(107,58,42,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Marcadors existents
-            <input type="number" class="audit-in" id="a-marc" min="0" placeholder="ex: 88" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(107,58,42,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-          <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Mesos de consum que representen
-            <input type="number" class="audit-in" id="a-mesos" min="1" max="12" placeholder="ex: 3" oninput="calcAudit()"
-              style="width:100%;margin-top:.25rem;padding:.35rem .6rem;border:1.5px solid rgba(107,58,42,.4);border-radius:6px;font-size:.83rem;background:var(--wood-grain);color:var(--text)">
-          </label>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Taula de contrast -->
-    <div id="contrast-output" style="border-radius:8px;overflow:hidden;border:1px solid rgba(168,110,60,.2)">
-      <div style="text-align:center;padding:1.5rem;color:var(--text-soft);font-size:.85rem">
-        ⬆️ Introdueix dades per veure el contrast automàtic
-      </div>
-    </div>
-
-    <div style="margin-top:.7rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-      <button class="btn btn-wood" onclick="clearAudit()" style="font-size:.78rem">🗑️ Netejar camps</button>
-      <span style="font-size:.75rem;color:var(--text-soft)">
-        ✅ &lt;15% desviació = dada fiable · ⚠️ 15–30% = reviseu hipòtesi · ❌ &gt;30% = sobreestimació important
-      </span>
-    </div>
-  </div>
 
   <!-- Factures agrupades en una sola card amb seccions -->
   <div class="card">

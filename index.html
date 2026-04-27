@@ -262,55 +262,12 @@
       <span style="font-weight:800;color:var(--wood-dark);font-size:.95rem">📌 Mostra:</span>
       <div style="display:flex;flex-wrap:wrap;gap:.5rem;flex:1">
         <button class="plan-tab active" onclick="showPlanBlock('all',this)">🌿 Tot</button>
-        <button class="plan-tab" onclick="showPlanBlock('pb-millores',this)">🔄 Aplicar Millores</button>
         <button class="plan-tab" onclick="showPlanBlock('pb-estalvi',this)">💰 Estalvi Estimat</button>
         <button class="plan-tab" onclick="showPlanBlock('pb-metodologia',this)">🧮 Metodologia</button>
         <button class="plan-tab" onclick="showPlanBlock('pb-simulador',this)">🎛️ Simulador</button>
         <button class="plan-tab" onclick="showPlanBlock('pb-cronograma',this)">📅 Cronograma</button>
         <button class="plan-tab" onclick="showPlanBlock('pb-indicadors',this)">📐 Indicadors</button>
       </div>
-    </div>
-  </div>
-
-  <!-- 1. Toggle per aplicar millores al dashboard -->
-  <div class="card plan-block" id="pb-millores">
-    <h2>🌍 Aplicar Millores al Resum de Consum
-      <span class="badge badge-green" id="mejoras-badge-plan" style="display:none">✅ Actiu</span>
-    </h2>
-    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:.8rem">
-      Activa les categories on vols veure l'impacte del −30%. Afecta els KPIs del Dashboard, els Càlculs i els Gràfics.
-    </p>
-    <div class="toggle-bar" style="flex-direction:column;align-items:flex-start;gap:1rem">
-      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;width:100%">
-        <span class="tlbl">🔄 Aplicar Millores del Pla (−30%) per categoria:</span>
-        <div style="margin-left:auto;display:flex;gap:.5rem">
-          <button class="btn btn-eco" onclick="applyTodasMillores(true)">✅ Totes</button>
-          <button class="btn btn-wood" onclick="applyTodasMillores(false)">✖ Cap</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem;width:100%">
-        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(64,145,108,.12);border:1.5px solid rgba(64,145,108,.35);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
-          <input type="checkbox" id="toggle-elec" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#40916c;cursor:pointer">
-          <span style="font-weight:700;color:#1b4332;font-size:.88rem">⚡ Electricitat</span>
-          <span class="badge badge-green" style="margin-left:auto">−30%</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(66,165,245,.12);border:1.5px solid rgba(66,165,245,.35);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
-          <input type="checkbox" id="toggle-agua" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#1565c0;cursor:pointer">
-          <span style="font-weight:700;color:#0d47a1;font-size:.88rem">💧 Aigua</span>
-          <span class="badge" style="background:#bbdefb;color:#0d47a1;margin-left:auto">−30%</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(107,58,42,.10);border:1.5px solid rgba(107,58,42,.3);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
-          <input type="checkbox" id="toggle-ofic" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#6b3a2a;cursor:pointer">
-          <span style="font-weight:700;color:#3b2314;font-size:.88rem">📋 Material</span>
-          <span class="badge badge-gold" style="margin-left:auto">−30%</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:.6rem;background:rgba(156,39,176,.10);border:1.5px solid rgba(156,39,176,.3);border-radius:8px;padding:.6rem .9rem;cursor:pointer">
-          <input type="checkbox" id="toggle-net" onchange="applyMejoras()" style="width:18px;height:18px;accent-color:#9c27b0;cursor:pointer">
-          <span style="font-weight:700;color:#4a148c;font-size:.88rem">🧹 Neteja</span>
-          <span class="badge" style="background:#f3e5f5;color:#6a1b9a;margin-left:auto">−30%</span>
-        </label>
-      </div>
-      <div id="toggle-label" style="color:#888;font-size:.83rem;font-style:italic">Selecciona les categories on vols aplicar el 30% d'estalvi</div>
     </div>
   </div>
 

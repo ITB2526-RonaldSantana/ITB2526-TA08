@@ -31,6 +31,37 @@
 .plan-block.hidden {
   display:none;
 }
+
+/* Audit inputs */
+.audit-in {
+  padding:.4rem .7rem;
+  border:1.5px solid rgba(168,110,60,.35);
+  border-radius:6px;font-size:.85rem;
+  background:var(--wood-grain);color:var(--text);
+  width:100%;transition:border-color .2s;
+}
+.audit-in:focus { border-color:var(--eco-light);outline:none; }
+
+/* Contrast rows */
+.contrast-row {
+  display:grid;
+  grid-template-columns:1.8fr 1fr 1fr 1fr;
+  gap:.5rem;align-items:center;
+  padding:.65rem .75rem;
+  border-bottom:1px solid rgba(168,110,60,.15);
+  font-size:.82rem;
+}
+.contrast-row:last-child { border-bottom:none; }
+.contrast-head {
+  background:linear-gradient(135deg,var(--wood-dark),var(--wood-mid));
+  color:var(--wood-cream);border-radius:8px 8px 0 0;
+  font-weight:700;font-size:.78rem;
+}
+.dev-ok  { color:#1b5e20;font-weight:800; }
+.dev-warn{ color:#e65100;font-weight:800; }
+.dev-bad { color:#c62828;font-weight:800; }
+.dev-bar-wrap { height:6px;background:rgba(168,110,60,.15);border-radius:3px;margin-top:3px; }
+.dev-bar { height:6px;border-radius:3px;transition:width .4s; }
 </style>
 </head>
 <body>
@@ -64,6 +95,7 @@
   <button onclick="showSection('graficos', this)">📈 Gràfics</button>
   <button onclick="showSection('plan', this)">🌱 Pla 30%</button>
   <button onclick="showSection('consejos', this)">💡 Consells</button>
+  <button onclick="showSection('auditoria', this)">🔍 Auditoria</button>
   <button class="btn-pdf-nav" onclick="exportPDF()">⬇ PDF</button>
 </nav>
 
@@ -604,6 +636,180 @@
 
 </div><!-- /consejos -->
 
+
+<!-- ============================================================
+     AUDITORIA IN SITU — Contrast dades teòriques vs. reals
+     ============================================================ -->
+<div id="auditoria" class="section">
+
+  <div class="card">
+    <h2>🔍 Auditoria In Situ — Fase 4</h2>
+    <p style="font-size:.85rem;color:var(--text-soft);line-height:1.8;margin-bottom:.5rem">
+      Introdueix les dades que has mesurat físicament al centre (aula d'informàtica, magatzem...).
+      La calculadora les compararà automàticament amb les estimacions teòriques i et dirà si estan sobreestimades o infraestimades.
+    </p>
+    <div style="background:linear-gradient(135deg,rgba(27,67,50,.06),rgba(64,145,108,.06));border:1.5px solid rgba(64,145,108,.25);border-radius:8px;padding:.8rem 1rem;font-size:.82rem;color:var(--text-soft)">
+      💡 <strong>Com usar-ho:</strong> Visita l'aula amb el mòbil, compta els equips, mira les etiquetes de consum (W) i omple els camps. Els camps buits no es comptabilitzen.
+    </div>
+  </div>
+
+  <!-- ⚡ AULA D'INFORMÀTICA -->
+  <div class="card">
+    <h2>⚡ Inventari Energètic — Aula d'Informàtica</h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:1rem">Compta cada equip i anota la potència de l'etiqueta o especificació tècnica.</p>
+
+    <div style="overflow-x:auto">
+      <table id="tbl-audit-elec" style="min-width:560px">
+        <thead>
+          <tr>
+            <th>Equip</th>
+            <th>Nº unitats (real)</th>
+            <th>W/unitat (etiqueta)</th>
+            <th>W standby/unitat</th>
+            <th>Total W actiu</th>
+            <th>Total W standby</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🖥️ Ordinadors (torre/AIO)</td>
+            <td><input type="number" class="audit-in" id="a-pc-n" min="0" max="100" placeholder="ex: 25" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-pc-w" min="0" max="1000" placeholder="ex: 180" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-pc-sb" min="0" max="100" placeholder="ex: 5" oninput="calcAudit()"></td>
+            <td id="a-pc-tot" style="font-weight:700;color:var(--eco-mid)">—</td>
+            <td id="a-pc-sbtot" style="font-weight:700;color:var(--wood-mid)">—</td>
+          </tr>
+          <tr>
+            <td>🖥️ Monitors</td>
+            <td><input type="number" class="audit-in" id="a-mon-n" min="0" max="100" placeholder="ex: 25" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-mon-w" min="0" max="500" placeholder="ex: 22" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-mon-sb" min="0" max="50" placeholder="ex: 1" oninput="calcAudit()"></td>
+            <td id="a-mon-tot" style="font-weight:700;color:var(--eco-mid)">—</td>
+            <td id="a-mon-sbtot" style="font-weight:700;color:var(--wood-mid)">—</td>
+          </tr>
+          <tr>
+            <td>💡 Llums (tub fluorescent/LED)</td>
+            <td><input type="number" class="audit-in" id="a-llum-n" min="0" max="200" placeholder="ex: 12" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-llum-w" min="0" max="200" placeholder="ex: 36" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-llum-sb" min="0" max="10" placeholder="ex: 0" oninput="calcAudit()"></td>
+            <td id="a-llum-tot" style="font-weight:700;color:var(--eco-mid)">—</td>
+            <td id="a-llum-sbtot" style="font-weight:700;color:var(--wood-mid)">—</td>
+          </tr>
+          <tr>
+            <td>❄️ Clima / projector / altres</td>
+            <td><input type="number" class="audit-in" id="a-alt-n" min="0" max="20" placeholder="ex: 1" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-alt-w" min="0" max="3000" placeholder="ex: 900" oninput="calcAudit()"></td>
+            <td><input type="number" class="audit-in" id="a-alt-sb" min="0" max="50" placeholder="ex: 3" oninput="calcAudit()"></td>
+            <td id="a-alt-tot" style="font-weight:700;color:var(--eco-mid)">—</td>
+            <td id="a-alt-sbtot" style="font-weight:700;color:var(--wood-mid)">—</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="background:rgba(64,145,108,.08)">
+            <td colspan="4" style="font-weight:800;color:var(--eco-dark)">TOTAL AULA (potència)</td>
+            <td id="a-tot-actiu" style="font-weight:800;color:var(--eco-dark);font-size:1rem">—</td>
+            <td id="a-tot-sb" style="font-weight:800;color:var(--wood-mid);font-size:1rem">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;margin-top:1rem">
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">⏱️ Hores d'ús real/dia (observat)</label>
+        <input type="number" class="audit-in" id="a-hores-real" min="0" max="16" step="0.5" placeholder="ex: 6.5" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--wood-tan);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📅 Dies lectius reals observats</label>
+        <input type="number" class="audit-in" id="a-dies-real" min="0" max="260" placeholder="ex: 175" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--wood-tan);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🏫 Nombre d'aules auditades</label>
+        <input type="number" class="audit-in" id="a-naules-real" min="1" max="40" placeholder="ex: 1" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--wood-tan);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+    </div>
+  </div>
+
+  <!-- 💧 AIGUA -->
+  <div class="card">
+    <h2>💧 Mesurament d'Aigua — Observació Directa</h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:1rem">Anota les lectures del comptador o les mesures d'aforament dels punts d'aigua.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem">
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">👤 Persones comptades al centre</label>
+        <input type="number" class="audit-in" id="a-pers-real" min="0" max="2000" placeholder="ex: 380" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--agua);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🚰 Litres/persona/dia (aforament real)</label>
+        <input type="number" class="audit-in" id="a-litres-real" min="0" max="100" placeholder="ex: 9" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--agua);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📖 Lectura comptador (m³) inici dia</label>
+        <input type="number" class="audit-in" id="a-comp-ini" min="0" step="0.001" placeholder="ex: 1234.500" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--agua);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📖 Lectura comptador (m³) final dia</label>
+        <input type="number" class="audit-in" id="a-comp-fi" min="0" step="0.001" placeholder="ex: 1239.800" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--agua);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+    </div>
+  </div>
+
+  <!-- 📋 MATERIAL MAGATZEM -->
+  <div class="card">
+    <h2>📋 Inventari Magatzem — Material d'Oficina</h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:1rem">Compta les existències físiques al magatzem i compara amb les comandes teòriques.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem">
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">📄 Resmes de paper al magatzem (real)</label>
+        <input type="number" class="audit-in" id="a-resmes-real" min="0" max="500" placeholder="ex: 47" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--wood-tan);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🖊️ Marcadors existents (real)</label>
+        <input type="number" class="audit-in" id="a-marc-real" min="0" max="1000" placeholder="ex: 88" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--wood-tan);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🗓️ Mesos de consum que representen</label>
+        <input type="number" class="audit-in" id="a-mesos-stock" min="1" max="12" placeholder="ex: 3" oninput="calcAudit()"
+          style="width:100%;padding:.4rem .7rem;border:1.5px solid var(--wood-tan);border-radius:6px;margin-top:.3rem;font-size:.85rem;background:var(--wood-grain)">
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTAT: CONTRAST -->
+  <div class="card" id="card-contrast" style="border-left:5px solid var(--eco-light)">
+    <h2>📊 Contrast: Dades Teòriques vs. Reals</h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:1rem">
+      Omple els camps de dalt per veure el contrast. Les desviacions majors del ±15% indiquen que la calculadora necessita ajust.
+    </p>
+    <div id="contrast-output">
+      <div style="text-align:center;padding:2rem;color:var(--text-soft);font-size:.88rem">
+        ⬆️ Introdueix dades per veure el contrast automàtic
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES D'AUDITORIA -->
+  <div class="card">
+    <h2>📝 Notes de l'Auditoria</h2>
+    <p style="font-size:.82rem;color:var(--text-soft);margin-bottom:.7rem">Afegeix observacions de la inspecció (anomalies, equips en mal estat, fuites detectades...)</p>
+    <textarea id="audit-notes" rows="5" placeholder="Ex: S'han detectat 3 ordinadors en standby permanent sense apagar. Un fluorescent parpelleja (possible avaria). La cisterna del WC de planta 2 fa soroll continu (possible fuga)..."
+      style="width:100%;padding:.7rem;border:1.5px solid rgba(168,110,60,.3);border-radius:8px;font-size:.83rem;font-family:inherit;background:var(--wood-grain);color:var(--text);resize:vertical;line-height:1.6"></textarea>
+    <div style="margin-top:.7rem;display:flex;gap:.7rem;flex-wrap:wrap">
+      <button class="btn btn-eco" onclick="exportAuditPDF()">📄 Exportar informe d'auditoria</button>
+      <button class="btn btn-wood" onclick="clearAudit()">🗑️ Netejar tots els camps</button>
+    </div>
+  </div>
+
+</div><!-- /auditoria -->
 </main>
 
 <footer>

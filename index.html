@@ -62,6 +62,52 @@
 .dev-bad { color:#c62828;font-weight:800; }
 .dev-bar-wrap { height:6px;background:rgba(168,110,60,.15);border-radius:3px;margin-top:3px; }
 .dev-bar { height:6px;border-radius:3px;transition:width .4s; }
+
+/* Inventari d'equips — taula auditoria */
+.inv-table { width:100%; border-collapse:collapse; font-size:.78rem; margin-bottom:.8rem; }
+.inv-table th {
+  background:linear-gradient(135deg,#1b4332,#2d6a4f);
+  color:#fff; padding:.45rem .6rem; text-align:center; font-weight:700; white-space:nowrap;
+}
+.inv-table th:first-child { text-align:left; }
+.inv-table td { padding:.4rem .6rem; border-bottom:1px solid rgba(64,145,108,.15); vertical-align:middle; text-align:center; }
+.inv-table td:first-child { text-align:left; font-weight:600; color:var(--wood-dark); }
+.inv-table tr:nth-child(even) td { background:rgba(64,145,108,.04); }
+.inv-table tr:hover td { background:rgba(64,145,108,.09); }
+.inv-table tfoot td { background:rgba(64,145,108,.12); font-weight:800; color:#1b4332; border-top:2px solid rgba(64,145,108,.4); }
+.inv-in {
+  width:80px; padding:.3rem .4rem; border:1.5px solid rgba(64,145,108,.35);
+  border-radius:5px; font-size:.78rem; text-align:center;
+  background:var(--wood-grain); color:var(--text); transition:border-color .2s;
+}
+.inv-in:focus { border-color:#40916c; outline:none; }
+.calc-cell { font-weight:700; color:#1b4332; }
+.dev-pos { color:#c62828; font-weight:800; }
+.dev-neg { color:#1b5e20; font-weight:800; }
+.dev-ok  { color:#555; font-weight:700; }
+.concl-box {
+  border-radius:8px; padding:.7rem 1rem; font-size:.8rem; line-height:1.7; margin-top:.6rem;
+}
+
+/* ── Calculadora d'aparells ─────────────────────────────── */
+.ap-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.ap-table th{background:linear-gradient(135deg,var(--wood-dark),var(--wood-mid));color:var(--wood-cream);padding:.5rem .65rem;text-align:center;white-space:nowrap}
+.ap-table th:first-child{text-align:left}
+.ap-table td{padding:.42rem .65rem;border-bottom:1px solid rgba(168,110,60,.15);text-align:center;vertical-align:middle}
+.ap-table td:first-child{text-align:left;color:var(--wood-dark);font-weight:600}
+.ap-table tr:nth-child(even) td{background:rgba(168,110,60,.04)}
+.ap-table tr:hover td{background:rgba(64,145,108,.07)}
+.ap-table tfoot td{background:linear-gradient(135deg,rgba(27,67,50,.1),rgba(64,145,108,.08));font-weight:800;color:#1b4332;border-top:2px solid rgba(64,145,108,.35);font-size:.85rem}
+.ap-in{width:72px;padding:.3rem .4rem;border:1.5px solid rgba(168,110,60,.35);border-radius:5px;font-size:.78rem;text-align:center;background:var(--wood-grain);color:var(--text);transition:border-color .2s}
+.ap-in:focus{border-color:var(--eco-light);outline:none}
+.ap-in.wide{width:130px;text-align:left}
+.ap-kwh{font-weight:800;color:var(--eco-dark)}
+.ap-cost{font-weight:800;color:var(--wood-mid)}
+.ap-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin-top:1rem}
+.ap-kpi{border-radius:10px;padding:.9rem 1rem;text-align:center;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.ap-kpi .val{font-size:1.5rem;font-weight:800}
+.ap-kpi .lbl{font-size:.73rem;opacity:.9;margin-top:.2rem}
+
 </style>
 </head>
 <body>
@@ -95,6 +141,7 @@
   <button onclick="showSection('graficos', this)">📈 Gràfics</button>
   <button onclick="showSection('plan', this)">🌱 Pla 30%</button>
   <button onclick="showSection('consejos', this)">💡 Consells</button>
+  <button onclick="showSection('aparells', this)">🔌 Aparells</button>
   <button class="btn-pdf-nav" onclick="exportPDF()">⬇ PDF</button>
 </nav>
 
@@ -385,6 +432,48 @@
     <!-- ⚡ ELECTRICITAT -->
     <div style="border:1.5px solid rgba(64,145,108,.3);border-radius:10px;padding:1rem;margin-bottom:1rem;background:rgba(64,145,108,.05)">
       <h3 style="color:#1b4332;margin-bottom:.8rem">⚡ Electricitat</h3>
+
+      <!-- 📋 Taula inventari d'equips — Auditoria In Situ -->
+      <div style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem">
+          <span style="font-size:.83rem;font-weight:700;color:#1b4332">📋 Inventari d'Equips — Omple amb les dades reals de l'aula</span>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn btn-eco" onclick="addInvRow()" style="font-size:.73rem;padding:.3rem .6rem">+ Afegir equip</button>
+            <button class="btn btn-wood" onclick="resetInv()" style="font-size:.73rem;padding:.3rem .6rem">↺ Resetear</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>🖥️ Tipus d'Equip</th>
+                <th>🔢 Quantitat</th>
+                <th>⚡ Potència Nominal (W)</th>
+                <th>⏱️ Hores d'ús diari (h)</th>
+<th>💤 Potència Standby (W)</th>
+                <th style="background:#0d47a1">🔵 24h continu</th>
+                <th>📊 Consum Real Diari (kWh)</th>
+                <th>📐 Consum Teòric Fase 3 (kWh)</th>
+                <th>📉 Desviació</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" style="text-align:right">TOTAL AULA:</td>
+                <td id="inv-tot-sb">— W</td>
+                <td id="inv-tot-real">— kWh/dia</td>
+                <td id="inv-tot-teo">— kWh/dia</td>
+                <td id="inv-tot-dev">—</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div id="inv-conclusio" class="concl-box" style="display:none"></div>
+      </div>
+
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
         <div>
           <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">🏫 Nombre d'aules actives <span style="float:right;color:var(--eco-mid)" id="lbl-aules">20</span></label>
@@ -636,6 +725,70 @@
 
 </div><!-- /consejos -->
 
+
+
+<!-- ============================================================
+     APARELLS — Calculadora de consum per aparell
+     ============================================================ -->
+<div id="aparells" class="section">
+
+  <div class="card">
+    <h2>🔌 Calculadora de Consum per Aparell</h2>
+    <p style="font-size:.83rem;color:var(--text-soft);line-height:1.7;margin-bottom:1rem">
+      Afegeix qualsevol aparell, omple els camps i obtindràs el <strong>kWh/any</strong> i el
+      <strong>cost anual</strong> de forma automàtica. Ideal per saber exactament quant gasta
+      cada equip del centre de forma independent.
+    </p>
+
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center">
+      <button class="btn btn-eco" onclick="apAddRow()">＋ Afegir aparell</button>
+      <button class="btn btn-wood" onclick="apReset()">↺ Restaurar exemple</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
+        <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">€/kWh:</label>
+        <input type="number" id="ap-tarifa" class="ap-in" value="0.17" min="0.01" step="0.01"
+          oninput="apCalc()" style="width:65px">
+        <label style="font-size:.78rem;font-weight:700;color:var(--wood-dark)">Dies/any:</label>
+        <input type="number" id="ap-dies" class="ap-in" value="180" min="1" max="365"
+          oninput="apCalc()" style="width:58px">
+      </div>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="ap-table">
+        <thead>
+          <tr>
+            <th>🖥️ Aparell</th>
+            <th>🔢 Unitats</th>
+            <th>⚡ W nominal</th>
+            <th>💤 W standby</th>
+            <th>⏱️ h/dia ús</th>
+            <th>⏱️ h/dia standby</th>
+            <th>📅 Dies/any</th>
+            <th>📊 kWh/any (ús)</th>
+            <th>💤 kWh/any (SB)</th>
+            <th>📦 kWh/any TOTAL</th>
+            <th>💶 Cost/any</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ap-tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="7" style="text-align:right;color:var(--eco-dark)">TOTAL</td>
+            <td id="ap-tot-us" class="ap-kwh">—</td>
+            <td id="ap-tot-sb" class="ap-kwh">—</td>
+            <td id="ap-tot-kwh" class="ap-kwh">—</td>
+            <td id="ap-tot-cost" class="ap-cost">—</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="ap-summary" id="ap-summary"></div>
+  </div>
+
+</div><!-- /aparells -->
 
 </main>
 

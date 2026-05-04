@@ -969,15 +969,15 @@ document.addEventListener('DOMContentLoaded', () => { initInv(); });
 /* ============================================================
    CALCULADORA D'APARELLS — kWh/any per equip
    ============================================================ */
+// Fórmula exacta Excel: ((u*w*hUs) + (u*sb*(24-hUs))) * dies / 1000
+// IMPORTANT: W = potència PER UNITAT (no total de l'aula)
+// hSb = (24 - hUs) automàtic — igual que el full de càlcul
 const AP_DEFAULTS = [
-  { nom:'PC Alumnes (Torre)',        u:30, w:100,  sb:1.5, hUs:6,  hSb:18, dies:180 },
-  { nom:'Monitor PC',               u:30, w:16,   sb:0.5, hUs:6,  hSb:18, dies:180 },
-  { nom:'Portàtil Professor',       u:1,  w:45,   sb:0.5, hUs:7,  hSb:1,  dies:180 },
-  { nom:'Pissarra Digital',         u:1,  w:132,  sb:0.5, hUs:6,  hSb:2,  dies:180 },
-  { nom:'Projector',                u:1,  w:280,  sb:1,   hUs:5,  hSb:0,  dies:180 },
-  { nom:'Aire Condicionat (FRED)',  u:1,  w:3490, sb:0,   hUs:6,  hSb:0,  dies:120 },
-  { nom:'Aire Condicionat (CALOR)', u:1,  w:2820, sb:0,   hUs:6,  hSb:0,  dies:80  },
-  { nom:'Switch / Xarxa',           u:1,  w:1484, sb:0,   hUs:24, hSb:0,  dies:365 },
+  { nom:'PC Alumnes (Torre)',        u:30, w:100,  sb:1.5, hUs:11, dies:175 },
+  { nom:'Monitor PC',               u:30, w:16,   sb:0.5, hUs:11, dies:175 },
+  { nom:'Pissarra Digital',         u:1,  w:132,  sb:0.5, hUs:9,  dies:175 },
+  { nom:'Aire Condicionat',         u:1,  w:3490, sb:0,   hUs:10, dies:175 },
+  { nom:'Switch / Xarxa',           u:1,  w:1484, sb:0,   hUs:24, dies:175 },
 ];
 
 let apRows = [], apId = 0;
@@ -1006,7 +1006,9 @@ function apUpdate(id, field, val) {
 function apRender() {
   const tbody = document.getElementById('ap-tbody');
   if (!tbody) return;
-  tbody.innerHTML = apRows.map(r => `
+  tbody.innerHTML = apRows.map(r => {
+    const hSbAuto = Math.max(0, 24 - r.hUs).toFixed(1);
+    return `
     <tr>
       <td><input class="ap-in wide" value="${r.nom}" placeholder="Nom aparell"
         oninput="apUpdate(${r.id},'nom',this.value)"></td>
@@ -1018,8 +1020,7 @@ function apRender() {
         oninput="apUpdate(${r.id},'sb',this.value)"></td>
       <td><input class="ap-in" type="number" min="0" max="24" step="0.5" value="${r.hUs}"
         oninput="apUpdate(${r.id},'hUs',this.value)"></td>
-      <td><input class="ap-in" type="number" min="0" max="24" step="0.5" value="${r.hSb}"
-        oninput="apUpdate(${r.id},'hSb',this.value)"></td>
+      <td style="color:var(--text-soft);font-size:.78rem;font-style:italic">${hSbAuto} h<br><span style="font-size:.68rem;opacity:.7">(24 − hUs)</span></td>
       <td><input class="ap-in" type="number" min="1" max="365" value="${r.dies}"
         oninput="apUpdate(${r.id},'dies',this.value)"></td>
       <td class="ap-kwh" id="ap-us-${r.id}">—</td>
@@ -1028,7 +1029,8 @@ function apRender() {
       <td class="ap-cost" id="ap-cost-${r.id}">—</td>
       <td><button onclick="apRemove(${r.id})"
         style="background:none;border:none;cursor:pointer;color:#c62828;font-size:.9rem">✕</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   apCalc();
 }
 
@@ -1040,8 +1042,9 @@ function apCalc() {
 
   apRows.forEach(r => {
     const dies  = r.dies || diesGlobal;
-    const kwhUs = r.u * r.w  * r.hUs * dies / 1000;
-    const kwhSb = r.u * r.sb * r.hSb * dies / 1000;
+    const hSb   = Math.max(0, 24 - r.hUs);          // (24 - hUs) com al Excel
+    const kwhUs = r.u * r.w  * r.hUs * dies / 1000; // actiu
+    const kwhSb = r.u * r.sb * hSb   * dies / 1000; // standby les hores restants
     const kwhTot= kwhUs + kwhSb;
     const cost  = kwhTot * tarifa;
 
@@ -1100,3 +1103,240 @@ function apCalc() {
 function apReset() { apInit(); }
 
 document.addEventListener('DOMContentLoaded', () => { apInit(); });
+
+/* ============================================================
+   SEGONA VIDA — Reparar vs Substituir · Protocol · Etiqueta ASG
+   ============================================================ */
+
+// ── Navegació interna ─────────────────────────────────────
+function svShow(id, btn) {
+  document.querySelectorAll('.sv-panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.sv-tab').forEach(b => b.classList.remove('on'));
+  document.getElementById('sv-' + id).classList.add('on');
+  btn.classList.add('on');
+  if (id === 'reparar') rvCalc();
+  if (id === 'protocol') protoRender();
+  if (id === 'etiqueta') asgRender();
+}
+
+// ── REPARAR VS. SUBSTITUIR ───────────────────────────────
+function rvCalc() {
+  const g  = id => parseFloat(document.getElementById(id)?.value || 0);
+  const nom      = document.getElementById('rv-nom')?.value || 'Component';
+  const costRep  = g('rv-cost-rep');
+  const vidaRep  = g('rv-vida-rep');
+  const co2Rep   = g('rv-co2-rep');
+  const wVell    = g('rv-w-vell');
+  const costNou  = g('rv-cost-nou');
+  const vidaNou  = g('rv-vida-nou');
+  const co2Nou   = g('rv-co2-nou');
+  const wNou     = g('rv-w-nou');
+  const hores    = g('rv-hores');
+  const dies     = g('rv-dies');
+  const tarifa   = g('rv-tarifa');
+
+  // kWh/any i cost energètic/any
+  const kwhVell  = wVell * hores * dies / 1000;
+  const kwhNou   = wNou  * hores * dies / 1000;
+  const costEVell= kwhVell * tarifa;
+  const costENou = kwhNou  * tarifa;
+
+  // Cost total per any de vida útil (TCO)
+  const tcoRep   = vidaRep > 0 ? ((costRep + costEVell * vidaRep) / vidaRep).toFixed(2) : '—';
+  const tcoNou   = vidaNou > 0 ? ((costNou + costENou * vidaNou) / vidaNou).toFixed(2) : '—';
+
+  // CO₂ total
+  const co2TotRep = co2Rep + kwhVell * vidaRep * 0.233;
+  const co2TotNou = co2Nou + kwhNou  * vidaNou * 0.233;
+
+  // Estalvi energètic anual si se substitueix
+  const estalviKwh  = kwhVell - kwhNou;
+  const estalviCost = costEVell - costENou;
+
+  // Payback: quants anys triga l'estalvi a pagar la diferència de cost
+  const difCost = costNou - costRep;
+  const payback = estalviCost > 0 ? (difCost / estalviCost).toFixed(1) : '∞';
+
+  // Decisió
+  const puntsRep = (tcoRep < tcoNou ? 1 : 0) + (co2TotRep < co2TotNou ? 1 : 0) + (vidaRep >= 2 ? 1 : 0);
+  const decReparar = puntsRep >= 2;
+
+  const el = document.getElementById('rv-verdict');
+  if (!el) return;
+
+  const colorRep = '#1b5e20', colorNou = '#c62828';
+  const winner = decReparar
+    ? `<span style="color:${colorRep};font-size:1.1rem;font-weight:800">✅ RECOMANACIÓ: REPARAR</span>`
+    : `<span style="color:${colorNou};font-size:1.1rem;font-weight:800">🛒 RECOMANACIÓ: SUBSTITUIR</span>`;
+
+  el.style.background  = decReparar ? 'rgba(64,145,108,.08)' : 'rgba(198,40,40,.06)';
+  el.style.border      = `1.5px solid ${decReparar ? 'rgba(64,145,108,.35)' : 'rgba(198,40,40,.25)'}`;
+
+  el.innerHTML = `
+    <div style="margin-bottom:.8rem">${winner} — <em style="font-size:.85rem;color:var(--text-soft)">${nom}</em></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;font-size:.82rem;margin-bottom:.8rem">
+      <div style="background:rgba(64,145,108,.08);border-radius:8px;padding:.7rem">
+        <div style="font-weight:800;color:#1b4332;margin-bottom:.4rem">🔧 Reparar</div>
+        <div>Cost total: <strong>${costRep.toFixed(0)} €</strong></div>
+        <div>Cost energètic/${vidaRep}a: <strong>${(costEVell*vidaRep).toFixed(0)} €</strong></div>
+        <div>TCO/any: <strong>${tcoRep} €/any</strong></div>
+        <div>CO₂ total: <strong>${co2TotRep.toFixed(0)} kg</strong></div>
+        <div>Vida guanyada: <strong>${vidaRep} anys</strong></div>
+      </div>
+      <div style="background:rgba(198,40,40,.06);border-radius:8px;padding:.7rem">
+        <div style="font-weight:800;color:#c62828;margin-bottom:.4rem">🛒 Substituir</div>
+        <div>Cost total: <strong>${costNou.toFixed(0)} €</strong></div>
+        <div>Cost energètic/${vidaNou}a: <strong>${(costENou*vidaNou).toFixed(0)} €</strong></div>
+        <div>TCO/any: <strong>${tcoNou} €/any</strong></div>
+        <div>CO₂ total: <strong>${co2TotNou.toFixed(0)} kg</strong></div>
+        <div>Vida esperada: <strong>${vidaNou} anys</strong></div>
+      </div>
+    </div>
+    <div style="font-size:.8rem;color:var(--text-soft);line-height:1.8;border-top:1px solid rgba(168,110,60,.2);padding-top:.6rem">
+      ⚡ Estalvi energètic anual si se substitueix: <strong>${estalviKwh.toFixed(1)} kWh/any (${estalviCost.toFixed(0)} €/any)</strong>
+      ${estalviCost > 0
+        ? ` · Payback de la substitució: <strong>${payback} anys</strong>`
+        : ' · <span style="color:#c62828">La substitució no estalvia energia (nou equip consumeix més)</span>'}
+      <br>🌍 Estalvi CO₂ si es repara vs. substitueix: <strong>${(co2TotNou - co2TotRep).toFixed(0)} kg CO₂</strong>
+    </div>`;
+}
+
+// ── PROTOCOL DE SEGONA VIDA ───────────────────────────────
+const PROTOCOLS = {
+  pc: {
+    funciona: [
+      { color:'#1b5e20', icon:'🔍', titol:'Diagnòstic tècnic',         desc:'Verificar que l\'equip arrenca, té connexió de xarxa i el disc dur és llegible. Anotar model, RAM, CPU i any de fabricació.' },
+      { color:'#1565c0', icon:'🧹', titol:'Neteja i posada a punt',     desc:'Netejar internament (aire comprimit), actualitzar BIOS si és possible, formatar i instal·lar Ubuntu LTS (lleuger i gratuït).' },
+      { color:'#e65100', icon:'📋', titol:'Assignació de nou ús',       desc:'Si té >4GB RAM i CPU post-2012: assignar a tasques bàsiques (recepció, biblioteca, aula de reforç). Si no, passar al pas 4.' },
+      { color:'#6a1b9a', icon:'🎁', titol:'Donació a entitat',         desc:'Contactar amb Ordinadors per a Tothom, Reutilitza o ajuntament local. Emplenar formulari de cessió i desvinculació de dades (LOPD).' },
+      { color:'#c62828', icon:'🗑️', titol:'Reciclatge RAEE',           desc:'Si l\'equip és irreparable: portar al punt RAEE municipal o al proveïdor (obligat per Directiva 2012/19/UE). Mai a contenidor general.' },
+    ],
+    espatllat: [
+      { color:'#e65100', icon:'🔧', titol:'Avaluació de reparabilitat', desc:'Identificar el component defectuós (font d\'alimentació, disc, memòria). Consultar preu de recanvi vs. cost equip nou.' },
+      { color:'#1b5e20', icon:'💰', titol:'Decisió econòmica',          desc:'Si cost reparació < 30% del preu d\'un equivalent nou: REPARAR. Si no: valorar donació de peces funcionals per separat.' },
+      { color:'#1565c0', icon:'🔩', titol:'Cannibalització de peces',   desc:'Extreure RAM, SSD, teclat o pantalla funcionals per reutilitzar en altres equips del centre. Registrar al magatzem.' },
+      { color:'#c62828', icon:'🗑️', titol:'Reciclatge RAEE',           desc:'La carcassa i components no reutilitzables al punt RAEE. Sol·licitar certificat de destrucció de dades si el disc no s\'ha extret.' },
+    ],
+    obsolet: [
+      { color:'#c62828', icon:'📊', titol:'Registre de baixa',          desc:'Anotar a l\'inventari del centre: número de sèrie, data de baixa i motiu. Necessari per auditoria i normativa de patrimoni públic.' },
+      { color:'#1565c0', icon:'🔩', titol:'Desmuntatge selectiu',       desc:'Extreure components reutilitzables (memòria, cablejat, cargols). Tot el que sigui reutilitzable al magatzem etiquetat.' },
+      { color:'#6a1b9a', icon:'🎓', titol:'Ús didàctic',               desc:'Els components inservibles poden usar-se com a material didàctic per explicar hardware. No tot el que no funciona és inútil.' },
+      { color:'#c62828', icon:'🗑️', titol:'Reciclatge RAEE certificat', desc:'Portar al gestor autoritzat RAEE. Guardar el certificat de reciclatge per a la memòria de sostenibilitat del centre.' },
+    ]
+  },
+  ratolí: {
+    funciona: [
+      { color:'#1b5e20', icon:'🔍', titol:'Diagnòstic',                desc:'Verificar botons, roda i connexió. Netejar la base i el sensor amb alcohol isopropílic.' },
+      { color:'#1565c0', icon:'🔄', titol:'Reassignació',              desc:'Si funciona correctament: reassignar a un altre equip o posar al magatzem com a recanvi.' },
+    ],
+    espatllat: [
+      { color:'#e65100', icon:'🔧', titol:'Reparació',                 desc:'Ratolins òptics: sovint el cable és el problema. Soldadura bàsica pot resoldre-ho. Cost < 2€ de material.' },
+      { color:'#c62828', icon:'🗑️', titol:'Reciclatge RAEE',          desc:'Si irreparable: dipòsit en punt RAEE. No al contenidor gris.' },
+    ],
+    obsolet: [
+      { color:'#6a1b9a', icon:'🎓', titol:'Ús didàctic',              desc:'Desmuntar i usar per explicar sensors òptics i ergonomia en classe.' },
+      { color:'#c62828', icon:'🗑️', titol:'RAEE',                     desc:'Reciclatge al punt corresponent.' },
+    ]
+  },
+  toner: {
+    funciona: [
+      { color:'#1b5e20', icon:'🔍', titol:'Verificar nivell real',     desc:'Molts tòners indiquen "buit" abans d\'estar-ho realment. Treure i agitar suaument per redistribuir el tòner.' },
+      { color:'#1565c0', icon:'♻️', titol:'Recàrrega',                desc:'Enviar a empresa de recàrrega certificada. Estalvi: 40-60% vs. tòner nou. Qualitat similar si és empresa acreditada.' },
+      { color:'#e65100', icon:'🎁', titol:'Devolució al proveïdor',   desc:'Molts fabricants (HP, Brother, Canon) tenen programes de recollida gratuïts. Sol·licitar l\'etiqueta prepagada.' },
+    ],
+    espatllat: [
+      { color:'#c62828', icon:'🗑️', titol:'Reciclatge específic',     desc:'Tòners defectuosos al punt RAEE o directament al fabricant. MAI al contenidor domèstic (contaminant químic).' },
+    ],
+    obsolet: [
+      { color:'#e65100', icon:'🎁', titol:'Programa fabricant',        desc:'HP Planet Partners, Brother Green Programme, Canon Cartridge Return. Recollida gratuïta al centre.' },
+      { color:'#c62828', icon:'🗑️', titol:'RAEE',                     desc:'Si no hi ha programa: punt RAEE municipal.' },
+    ]
+  },
+  monitor: {
+    funciona: [
+      { color:'#1b5e20', icon:'🔄', titol:'Reassignació',             desc:'Monitor funcional: reassignar a tasques secundàries (recepció, sala professors, biblioteca).' },
+      { color:'#1565c0', icon:'🎁', titol:'Donació',                  desc:'Si el centre no el necessita: donar a entitat via Reutilitza o ajuntament.' },
+    ],
+    espatllat: [
+      { color:'#e65100', icon:'🔧', titol:'Reparació backlight',      desc:'El problema més comú és el backlight (LED/CCFL). Recanvi econòmic si es té habilitat tècnica.' },
+      { color:'#c62828', icon:'🗑️', titol:'RAEE',                    desc:'Si irreparable: RAEE. Els monitors contenen substàncies perilloses (mercuri en CCFL).' },
+    ],
+    obsolet: [
+      { color:'#6a1b9a', icon:'🎓', titol:'Material didàctic',        desc:'Panell exposat per explicar tecnologies de pantalla (LCD, LED, IPS). Útil en FP d\'electrònica.' },
+      { color:'#c62828', icon:'🗑️', titol:'RAEE',                    desc:'Reciclatge certificat obligatori.' },
+    ]
+  },
+  portàtil: {
+    funciona: [
+      { color:'#1b5e20', icon:'🔍', titol:'Diagnòstic bateria',       desc:'Verificar cicles de bateria (cmd: powercfg /batteryreport). Si < 40% capacitat, valorar substitució de bateria (€15-50).' },
+      { color:'#1565c0', icon:'🔄', titol:'Reinstal·lació SO',        desc:'Format i Ubuntu LTS o Windows LTSC. Millora rendiment notablement en equips antics.' },
+      { color:'#6a1b9a', icon:'🎁', titol:'Donació',                  desc:'Portàtils funcionals molt demandats per entitats socials. Ordinadors per a Tothom, Cruz Roja Digital.' },
+    ],
+    espatllat: [
+      { color:'#e65100', icon:'🔧', titol:'Reparació',               desc:'Teclat, pantalla i bateria: peces econòmiques i canviables. RAM i SSD: actualitzable i millora molt el rendiment.' },
+      { color:'#1565c0', icon:'🔩', titol:'Cannibalització',         desc:'Extreure SSD, RAM i carregador per reutilitzar en altres equips del centre.' },
+      { color:'#c62828', icon:'🗑️', titol:'RAEE',                   desc:'Reciclatge certificat.' },
+    ],
+    obsolet: [
+      { color:'#c62828', icon:'📊', titol:'Baixa inventari',         desc:'Registre formal de baixa amb número de sèrie i certificat de destrucció de dades.' },
+      { color:'#c62828', icon:'🗑️', titol:'RAEE',                   desc:'Gestor autoritzat. Guardar certificat per memòria de sostenibilitat.' },
+    ]
+  }
+};
+
+function protoRender() {
+  const tipus = document.getElementById('proto-tipus')?.value || 'pc';
+  const estat = document.getElementById('proto-estat')?.value || 'funciona';
+  const steps = PROTOCOLS[tipus]?.[estat] || [];
+  const el = document.getElementById('proto-steps');
+  if (!el) return;
+  el.innerHTML = steps.map((s, i) => `
+    <div class="proto-step">
+      <div class="proto-num" style="background:${s.color};color:#fff">${i+1}</div>
+      <div class="proto-body">
+        <h4>${s.icon} ${s.titol}</h4>
+        <p>${s.desc}</p>
+      </div>
+    </div>`).join('');
+}
+
+// ── ETIQUETA ASG ─────────────────────────────────────────
+function asgRender() {
+  const g   = id => document.getElementById(id)?.value || '';
+  const nom = g('asg-nom') || 'Nom de l\'equip';
+  const model = g('asg-model') || 'Model · Any';
+  const any = g('asg-any');
+  const w   = g('asg-w');
+  const kwh = g('asg-kwh');
+  const co2 = g('asg-co2');
+  const ef  = g('asg-ef') || 'B';
+  const dec = g('asg-decisio') || 'reutilitzar';
+
+  const efColors = { A:'#1b5e20', B:'#2e7d32', C:'#e65100', D:'#c62828' };
+  const efDots = ['A','B','C','D'].map(l =>
+    `<div class="asg-dot" style="background:${l <= ef ? efColors[ef] : '#ddd'}"></div>`
+  ).join('');
+
+  const decLabel = {
+    reparar:'🔧 En reparació', reutilitzar:'♻️ Reutilitzar',
+    donar:'🎁 Donar a entitat', reciclar:'🗑️ Reciclatge RAEE'
+  }[dec] || dec;
+
+  const setT = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+  const setH = (id, v) => { const e = document.getElementById(id); if(e) e.innerHTML = v; };
+
+  setT('ap-nom-lbl',     nom);
+  setT('ap-model-lbl',   model + (any ? ' · ' + any : ''));
+  setT('ap-w-lbl',       w   ? w   + ' W'       : '— W');
+  setT('ap-kwh-lbl',     kwh ? kwh + ' kWh/any' : '— kWh/any');
+  setT('ap-co2-lbl',     co2 ? co2 + ' kg CO₂'  : '— kg CO₂');
+  setH('ap-ef-lbl',      `<div class="asg-rating">${efDots}</div>`);
+  setT('ap-decisio-lbl', decLabel);
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  rvCalc();
+  protoRender();
+  asgRender();
+});

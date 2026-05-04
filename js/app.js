@@ -644,6 +644,9 @@ function recalcSim() {
   });
   const badge = document.getElementById('sim-badge');
   if (badge) badge.style.display = isDefault ? 'none' : 'inline-block';
+
+  // Actualitzar teòric F3 a la taula d'inventari quan canvien els sliders
+  if (typeof calcInv === 'function') calcInv();
 }
 
 function resetSimulador() {
@@ -759,3 +762,341 @@ function exportPDF() {
    INICIALITZACIÓ
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => { updateAll(); recalcSim(); });
+
+/* ============================================================
+   INVENTARI D'EQUIPS — Auditoria aula (Simulador Pla 30%)
+   Columnes: tipus · quantitat · W nominal · hores · W standby
+             → consum real diari (kWh) · consum teòric F3 (kWh)
+             → desviació % · conclusió
+   ============================================================ */
+
+// Consum teòric Fase 3: s'obté dels sliders del simulador (potència il·luminació + PC × hores)
+// Es recalcula dinàmicament cada vegada per reflectir el que l'usuari té configurat
+function getTeoF3() {
+  const potlum = parseFloat(document.getElementById('sim-potlum')?.value || 500);
+  const potpc  = parseFloat(document.getElementById('sim-potpc')?.value  || 800);
+  const hores  = parseFloat(document.getElementById('sim-hores')?.value  || 8);
+  return (potlum + potpc) * hores / 1000; // kWh/dia per aula
+}
+
+// Equips per defecte — camp "always" = true → equip 24h (no entra al teòric F3)
+const INV_DEFAULTS = [
+  { nom: 'PC Alumnes (Torre)',        q: 30, w: 100,  h: 11, sb: 1.5, always: false },
+  { nom: 'Monitor PC',               q: 30, w: 16,   h: 11, sb: 0.5, always: false },
+  { nom: 'Pissarra Digital',         q: 1,  w: 132,  h: 9,  sb: 0.5, always: false },
+  { nom: 'Aire Condicionat / FRED',  q: 1,  w: 3490, h: 10, sb: 0,   always: false },
+  { nom: 'Aire Condicionat / CALOR', q: 1,  w: 2820, h: 10, sb: 0,   always: false },
+  { nom: 'Switch / Xarxa',           q: 1,  w: 1484, h: 24, sb: 0,   always: true  },
+];
+
+let invRows = [];
+let invRowId = 0;
+
+function initInv() {
+  invRows = [];
+  invRowId = 0;
+  INV_DEFAULTS.forEach(d => addInvRow(d));
+}
+
+function addInvRow(data) {
+  const id = invRowId++;
+  const d  = data || { nom: '', q: 1, w: 0, h: 8, sb: 0, always: false };
+  invRows.push({ id, ...d });
+  renderInvTable();
+}
+
+function removeInvRow(id) {
+  invRows = invRows.filter(r => r.id !== id);
+  renderInvTable();
+}
+
+function renderInvTable() {
+  const tbody = document.getElementById('inv-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = invRows.map(r => `
+    <tr id="inv-row-${r.id}" style="${r.always ? 'background:rgba(21,101,192,.06)' : ''}">
+      <td>
+        <input class="inv-in" style="width:130px;text-align:left" value="${r.nom}"
+          oninput="invUpdate(${r.id},'nom',this.value)" placeholder="Nom equip">
+      </td>
+      <td><input class="inv-in" type="number" min="0" value="${r.q}"
+            oninput="invUpdate(${r.id},'q',+this.value)"></td>
+      <td><input class="inv-in" type="number" min="0" value="${r.w}"
+            oninput="invUpdate(${r.id},'w',+this.value)"></td>
+      <td><input class="inv-in" type="number" min="0" max="24" step="0.5" value="${r.h}"
+            oninput="invUpdate(${r.id},'h',+this.value)"></td>
+      <td><input class="inv-in" type="number" min="0" step="0.1" value="${r.sb}"
+            oninput="invUpdate(${r.id},'sb',+this.value)"></td>
+      <td style="text-align:center">
+        <label style="display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:.72rem;color:${r.always ? '#1565c0' : 'var(--text-soft)'}">
+          <input type="checkbox" ${r.always ? 'checked' : ''}
+            onchange="invUpdate(${r.id},'always',this.checked)"
+            style="accent-color:#1565c0;cursor:pointer">
+          24h
+        </label>
+      </td>
+      <td class="calc-cell" id="inv-real-${r.id}">—</td>
+      <td class="calc-cell" id="inv-teo-${r.id}">—</td>
+      <td id="inv-dev-${r.id}">—</td>
+      <td><button onclick="removeInvRow(${r.id})" style="background:none;border:none;cursor:pointer;color:#c62828;font-size:.9rem">✕</button></td>
+    </tr>`).join('');
+
+  calcInv();
+}
+
+function invUpdate(id, field, val) {
+  const row = invRows.find(r => r.id === id);
+  if (row) { row[field] = val; calcInv(); }
+}
+
+function calcInv() {
+  let totSB = 0, totReal = 0;
+
+  // Separar equips lectius (comparables amb F3) dels 24h (always=true)
+  const lectiuRows = invRows.filter(r => !r.always);
+  const always24Rows= invRows.filter(r =>  r.always);
+
+  // Potència nominal total LECTIVA per distribuir el teòric proporcionalment
+  const totPotLectiu = lectiuRows.reduce((s, r) => s + r.q * r.w, 0);
+  const totTeoF3 = getTeoF3(); // kWh/dia de la F3 (solo equips lectius)
+
+  let totReal24 = 0; // kWh/dia dels equips 24h
+
+  invRows.forEach(r => {
+    const realKwh = r.q * r.w * r.h / 1000;
+    const sbW     = r.q * r.sb;
+    totSB   += sbW;
+    totReal += realKwh;
+    if (r.always) totReal24 += realKwh;
+
+    const rEl = document.getElementById(`inv-real-${r.id}`);
+    const tEl = document.getElementById(`inv-teo-${r.id}`);
+    const dEl = document.getElementById(`inv-dev-${r.id}`);
+
+    if (rEl) rEl.textContent = realKwh.toFixed(2) + ' kWh';
+
+    if (r.always) {
+      // Equips 24h: no tenen teòric F3, es marquen com a "No inclòs F3"
+      if (tEl) tEl.innerHTML = '<span style="font-size:.7rem;color:#1565c0;font-weight:700">🔵 24h</span>';
+      if (dEl) dEl.innerHTML = '<span style="font-size:.7rem;color:#1565c0">No inclòs</span>';
+    } else {
+      // Equips lectius: distribuir teòric proporcionalment
+      const pes    = totPotLectiu > 0 ? (r.q * r.w) / totPotLectiu : 0;
+      const teoKwh = +(pes * totTeoF3).toFixed(2);
+      const devRow = teoKwh > 0 ? +((realKwh - teoKwh) / teoKwh * 100).toFixed(1) : null;
+
+      if (tEl) tEl.textContent = teoKwh.toFixed(2) + ' kWh';
+      if (dEl && devRow !== null) {
+        const absD = Math.abs(devRow);
+        const cls  = absD <= 15 ? 'dev-ok' : devRow > 0 ? 'dev-pos' : 'dev-neg';
+        dEl.innerHTML = `<span class="${cls}">${devRow > 0 ? '▲' : '▼'} ${absD}%</span>`;
+      } else if (dEl) {
+        dEl.textContent = '—';
+      }
+    }
+  });
+
+  // Totals separats: lectiu vs 24h
+  const totTeo     = getTeoF3();          // kWh/dia teòric F3 (equips lectius)
+  const totRealLec = totReal - totReal24; // kWh/dia real equips lectius
+  const dev        = totTeo > 0 ? +((totRealLec - totTeo) / totTeo * 100).toFixed(1) : null;
+
+  const sbEl   = document.getElementById('inv-tot-sb');
+  const rEl    = document.getElementById('inv-tot-real');
+  const tEl    = document.getElementById('inv-tot-teo');
+  const dEl    = document.getElementById('inv-tot-dev');
+  const concEl = document.getElementById('inv-conclusio');
+
+  if (sbEl) sbEl.textContent = totSB.toFixed(1) + ' W';
+  if (rEl)  rEl.innerHTML = `${totReal.toFixed(2)} kWh/dia
+    <div style="font-size:.68rem;color:#1565c0;font-weight:600">
+      (${totRealLec.toFixed(2)} lectiu + ${totReal24.toFixed(2)} 24h)
+    </div>`;
+  if (tEl)  tEl.textContent = totTeo.toFixed(2) + ' kWh/dia';
+
+  if (dEl && dev !== null) {
+    const abs = Math.abs(dev);
+    const cls = abs <= 10 ? 'dev-ok' : dev > 0 ? 'dev-pos' : 'dev-neg';
+    dEl.innerHTML = `<span class="${cls}">${dev > 0 ? '▲' : '▼'} ${abs}%</span>
+      <div style="font-size:.68rem;color:#1565c0;margin-top:2px">equips lectius</div>`;
+  }
+
+  // Conclusió
+  if (concEl) {
+    concEl.style.display = 'block';
+    const abs = dev !== null ? Math.abs(dev) : 0;
+    let bg, icon, text;
+
+    if (dev === null) {
+      bg = 'rgba(168,110,60,.08)'; icon = 'ℹ️';
+      text = 'Introdueix dades per veure la conclusió.';
+    } else if (abs <= 10) {
+      bg = 'rgba(64,145,108,.1)'; icon = '✅';
+      text = `La calculadora és <strong>fiable pels equips lectius</strong>. Desviació de ${abs}% (≤10%), dins del marge acceptable.
+        Els equips 24h (switch, servidor...) generaven la distorsió anterior perquè la Fase 3 no els separava.`;
+    } else if (dev > 10) {
+      bg = 'rgba(198,40,40,.08)'; icon = '❌';
+      text = `La calculadora <strong>infraestima</strong> el consum lectiu en un ${abs}%.
+        Real lectiu: <strong>${totRealLec.toFixed(2)} kWh/dia</strong> vs. teòric F3: <strong>${totTeo.toFixed(2)} kWh/dia</strong>.
+        Possible causa: potències nominals reals superiors a les estimades, o hores d'ús majors.`;
+    } else {
+      bg = 'rgba(201,168,76,.1)'; icon = '⚠️';
+      text = `La calculadora <strong>sobreestima</strong> el consum lectiu en un ${abs}%.
+        Real lectiu: <strong>${totRealLec.toFixed(2)} kWh/dia</strong> vs. teòric F3: <strong>${totTeo.toFixed(2)} kWh/dia</strong>.
+        Possible causa: hores d'ús reals menors o potències inferiors a les suposades.`;
+    }
+
+    concEl.style.background  = bg;
+    concEl.style.border = `1.5px solid ${abs <= 10 ? 'rgba(64,145,108,.3)' : abs <= 30 ? 'rgba(201,168,76,.4)' : 'rgba(198,40,40,.3)'}`;
+    concEl.innerHTML = `<strong style="font-size:.85rem">${icon} Conclusió:</strong> ${text}
+      <div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:.8rem;font-size:.75rem;color:var(--text-soft)">
+        <span>💤 Standby total: <strong>${totSB.toFixed(1)} W</strong></span>
+        <span>📅 Projecció lectiva anual: <strong>${(totRealLec * 180).toFixed(0)} kWh</strong></span>
+        <span>🔵 Equips 24h anual: <strong>${(totReal24 * 365).toFixed(0)} kWh</strong></span>
+        <span>📐 Teòric F3 anual: <strong>${(totTeo * 180).toFixed(0)} kWh</strong></span>
+      </div>`;
+  }
+}
+
+function resetInv() {
+  initInv();
+}
+
+// Inicialitzar taula quan es carrega
+document.addEventListener('DOMContentLoaded', () => { initInv(); });
+
+/* ============================================================
+   CALCULADORA D'APARELLS — kWh/any per equip
+   ============================================================ */
+const AP_DEFAULTS = [
+  { nom:'PC Alumnes (Torre)',        u:30, w:100,  sb:1.5, hUs:6,  hSb:18, dies:180 },
+  { nom:'Monitor PC',               u:30, w:16,   sb:0.5, hUs:6,  hSb:18, dies:180 },
+  { nom:'Portàtil Professor',       u:1,  w:45,   sb:0.5, hUs:7,  hSb:1,  dies:180 },
+  { nom:'Pissarra Digital',         u:1,  w:132,  sb:0.5, hUs:6,  hSb:2,  dies:180 },
+  { nom:'Projector',                u:1,  w:280,  sb:1,   hUs:5,  hSb:0,  dies:180 },
+  { nom:'Aire Condicionat (FRED)',  u:1,  w:3490, sb:0,   hUs:6,  hSb:0,  dies:120 },
+  { nom:'Aire Condicionat (CALOR)', u:1,  w:2820, sb:0,   hUs:6,  hSb:0,  dies:80  },
+  { nom:'Switch / Xarxa',           u:1,  w:1484, sb:0,   hUs:24, hSb:0,  dies:365 },
+];
+
+let apRows = [], apId = 0;
+
+function apInit() {
+  apRows = []; apId = 0;
+  AP_DEFAULTS.forEach(d => apAddRow(d));
+}
+
+function apAddRow(data) {
+  const id = apId++;
+  apRows.push({ id, ...(data || { nom:'', u:1, w:0, sb:0, hUs:8, hSb:0, dies:180 }) });
+  apRender();
+}
+
+function apRemove(id) {
+  apRows = apRows.filter(r => r.id !== id);
+  apRender();
+}
+
+function apUpdate(id, field, val) {
+  const r = apRows.find(r => r.id === id);
+  if (r) { r[field] = (field === 'nom') ? val : +val; apCalc(); }
+}
+
+function apRender() {
+  const tbody = document.getElementById('ap-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = apRows.map(r => `
+    <tr>
+      <td><input class="ap-in wide" value="${r.nom}" placeholder="Nom aparell"
+        oninput="apUpdate(${r.id},'nom',this.value)"></td>
+      <td><input class="ap-in" type="number" min="0" value="${r.u}"
+        oninput="apUpdate(${r.id},'u',this.value)"></td>
+      <td><input class="ap-in" type="number" min="0" value="${r.w}"
+        oninput="apUpdate(${r.id},'w',this.value)"></td>
+      <td><input class="ap-in" type="number" min="0" step="0.1" value="${r.sb}"
+        oninput="apUpdate(${r.id},'sb',this.value)"></td>
+      <td><input class="ap-in" type="number" min="0" max="24" step="0.5" value="${r.hUs}"
+        oninput="apUpdate(${r.id},'hUs',this.value)"></td>
+      <td><input class="ap-in" type="number" min="0" max="24" step="0.5" value="${r.hSb}"
+        oninput="apUpdate(${r.id},'hSb',this.value)"></td>
+      <td><input class="ap-in" type="number" min="1" max="365" value="${r.dies}"
+        oninput="apUpdate(${r.id},'dies',this.value)"></td>
+      <td class="ap-kwh" id="ap-us-${r.id}">—</td>
+      <td class="ap-kwh" id="ap-sb-${r.id}" style="color:var(--wood-mid)">—</td>
+      <td class="ap-kwh" id="ap-tot-${r.id}" style="font-size:.88rem">—</td>
+      <td class="ap-cost" id="ap-cost-${r.id}">—</td>
+      <td><button onclick="apRemove(${r.id})"
+        style="background:none;border:none;cursor:pointer;color:#c62828;font-size:.9rem">✕</button></td>
+    </tr>`).join('');
+  apCalc();
+}
+
+function apCalc() {
+  const tarifa = parseFloat(document.getElementById('ap-tarifa')?.value || 0.17);
+  const diesGlobal = parseInt(document.getElementById('ap-dies')?.value || 180);
+
+  let totUs = 0, totSb = 0, totKwh = 0, totCost = 0;
+
+  apRows.forEach(r => {
+    const dies  = r.dies || diesGlobal;
+    const kwhUs = r.u * r.w  * r.hUs * dies / 1000;
+    const kwhSb = r.u * r.sb * r.hSb * dies / 1000;
+    const kwhTot= kwhUs + kwhSb;
+    const cost  = kwhTot * tarifa;
+
+    totUs   += kwhUs;
+    totSb   += kwhSb;
+    totKwh  += kwhTot;
+    totCost += cost;
+
+    const fmt = (v) => v.toFixed(1);
+    const fmtC = (v) => v.toFixed(2) + ' €';
+
+    const uEl = document.getElementById(`ap-us-${r.id}`);
+    const sEl = document.getElementById(`ap-sb-${r.id}`);
+    const tEl = document.getElementById(`ap-tot-${r.id}`);
+    const cEl = document.getElementById(`ap-cost-${r.id}`);
+    if (uEl) uEl.textContent = fmt(kwhUs)  + ' kWh';
+    if (sEl) sEl.textContent = fmt(kwhSb)  + ' kWh';
+    if (tEl) tEl.textContent = fmt(kwhTot) + ' kWh';
+    if (cEl) cEl.textContent = fmtC(cost);
+  });
+
+  // Totals
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('ap-tot-us',   totUs.toFixed(1)   + ' kWh/any');
+  set('ap-tot-sb',   totSb.toFixed(1)   + ' kWh/any');
+  set('ap-tot-kwh',  totKwh.toFixed(1)  + ' kWh/any');
+  set('ap-tot-cost', totCost.toFixed(2) + ' €/any');
+
+  // KPI summary cards
+  const summary = document.getElementById('ap-summary');
+  if (!summary) return;
+  const co2 = (totKwh * 0.233).toFixed(0); // factor emissions mitjà Espanya
+  summary.innerHTML = `
+    <div class="ap-kpi" style="background:linear-gradient(135deg,#1b5e20,#40916c)">
+      <div class="val">${totKwh.toFixed(0)} kWh</div>
+      <div class="lbl">Consum total anual</div>
+    </div>
+    <div class="ap-kpi" style="background:linear-gradient(135deg,#0d47a1,#42a5f5)">
+      <div class="val">${totSb.toFixed(0)} kWh</div>
+      <div class="lbl">D'ells en standby</div>
+    </div>
+    <div class="ap-kpi" style="background:linear-gradient(135deg,var(--wood-dark),var(--wood-tan))">
+      <div class="val">${totCost.toFixed(0)} €</div>
+      <div class="lbl">Cost total anual (${tarifa} €/kWh)</div>
+    </div>
+    <div class="ap-kpi" style="background:linear-gradient(135deg,#4a148c,#9c27b0)">
+      <div class="val">${co2} kg</div>
+      <div class="lbl">CO₂ equivalent (0,233 kg/kWh)</div>
+    </div>
+    <div class="ap-kpi" style="background:linear-gradient(135deg,#bf360c,#ff7043)">
+      <div class="val">${(totSb / totKwh * 100).toFixed(1)}%</div>
+      <div class="lbl">% del consum és standby</div>
+    </div>`;
+}
+
+function apReset() { apInit(); }
+
+document.addEventListener('DOMContentLoaded', () => { apInit(); });

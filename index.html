@@ -108,6 +108,62 @@
 .ap-kpi .val{font-size:1.5rem;font-weight:800}
 .ap-kpi .lbl{font-size:.73rem;opacity:.9;margin-top:.2rem}
 
+
+/* ── Segona Vida ─────────────────────────────────────────── */
+.sv-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.2rem}
+.sv-tab{padding:.45rem 1.1rem;border:1.5px solid rgba(168,110,60,.35);border-radius:20px;
+  background:transparent;color:var(--text-soft);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.sv-tab:hover{background:rgba(168,110,60,.1)}
+.sv-tab.on{background:linear-gradient(135deg,var(--eco-mid),var(--eco-dark));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(27,67,50,.25)}
+.sv-panel{display:none}.sv-panel.on{display:block}
+
+/* Reparar vs Substituir */
+.rv-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:600px){.rv-grid{grid-template-columns:1fr}}
+.rv-box{border-radius:10px;padding:1rem;border:1.5px solid rgba(168,110,60,.2)}
+.rv-in-row{display:flex;align-items:center;justify-content:space-between;
+  padding:.35rem 0;border-bottom:1px solid rgba(168,110,60,.1);font-size:.82rem}
+.rv-in-row:last-child{border-bottom:none}
+.rv-in-row label{color:var(--wood-dark);font-weight:600;flex:1}
+.rv-in{width:90px;padding:.3rem .5rem;border:1.5px solid rgba(168,110,60,.35);
+  border-radius:6px;font-size:.82rem;text-align:right;background:var(--wood-grain);color:var(--text)}
+.rv-in:focus{border-color:var(--eco-light);outline:none}
+.rv-verdict{border-radius:10px;padding:1rem 1.2rem;margin-top:1rem;font-size:.85rem;line-height:1.8}
+
+/* Protocol */
+.proto-step{display:flex;gap:12px;margin-bottom:1rem;align-items:flex-start}
+.proto-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;margin-top:2px}
+.proto-body h4{font-size:.9rem;font-weight:700;color:var(--wood-dark);margin-bottom:.25rem}
+.proto-body p{font-size:.8rem;color:var(--text-soft);line-height:1.7}
+.proto-select{padding:.35rem .6rem;border:1.5px solid var(--wood-tan);border-radius:6px;
+  font-size:.82rem;background:var(--wood-grain);color:var(--text);min-width:160px}
+
+/* Etiqueta ASG */
+.asg-label{
+  width:320px;border-radius:12px;overflow:hidden;
+  box-shadow:0 4px 20px rgba(0,0,0,.18);margin:0 auto;font-family:'Segoe UI',sans-serif;
+  border:2px solid #1b4332;
+}
+.asg-header{background:linear-gradient(135deg,#1b4332,#40916c);color:#fff;
+  padding:.8rem 1rem;display:flex;align-items:center;justify-content:space-between}
+.asg-header h3{font-size:1rem;font-weight:800;margin:0}
+.asg-header span{font-size:.75rem;opacity:.85}
+.asg-body{background:#fdf6e8;padding:.8rem 1rem}
+.asg-row{display:flex;justify-content:space-between;align-items:center;
+  padding:.3rem 0;border-bottom:1px solid rgba(168,110,60,.15);font-size:.8rem}
+.asg-row:last-child{border-bottom:none}
+.asg-row .lbl{color:var(--text-soft);font-weight:600}
+.asg-row .val{font-weight:800;color:var(--eco-dark)}
+.asg-rating{display:flex;gap:3px;margin:.6rem 0}
+.asg-dot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(0,0,0,.1)}
+.asg-footer{background:#1b4332;color:#fff;padding:.5rem 1rem;font-size:.72rem;text-align:center;opacity:.9}
+.asg-qr{width:40px;height:40px;background:#fff;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#333;text-align:center;line-height:1.2}
+.asg-in{width:100%;padding:.35rem .6rem;border:1.5px solid rgba(168,110,60,.3);
+  border-radius:6px;font-size:.82rem;background:var(--wood-grain);color:var(--text);margin-bottom:.4rem}
+.asg-in:focus{border-color:var(--eco-light);outline:none}
+
 </style>
 </head>
 <body>
@@ -142,6 +198,7 @@
   <button onclick="showSection('plan', this)">🌱 Pla 30%</button>
   <button onclick="showSection('consejos', this)">💡 Consells</button>
   <button onclick="showSection('aparells', this)">🔌 Aparells</button>
+  <button onclick="showSection('segona-vida', this)">♻️ Segona Vida</button>
   <button class="btn-pdf-nav" onclick="exportPDF()">⬇ PDF</button>
 </nav>
 
@@ -736,8 +793,8 @@
     <h2>🔌 Calculadora de Consum per Aparell</h2>
     <p style="font-size:.83rem;color:var(--text-soft);line-height:1.7;margin-bottom:1rem">
       Afegeix qualsevol aparell, omple els camps i obtindràs el <strong>kWh/any</strong> i el
-      <strong>cost anual</strong> de forma automàtica. Ideal per saber exactament quant gasta
-      cada equip del centre de forma independent.
+      <strong>cost anual</strong> de forma automàtica. Ideal per saber exactament quant gasta cada equip del centre de forma independent.<br>
+      <code style="background:rgba(168,110,60,.15);padding:.15rem .5rem;border-radius:4px;font-size:.78rem">kWh/any = ((u × W × h_ús) + (u × W_standby × (24 − h_ús))) × dies ÷ 1000</code>
     </p>
 
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center">
@@ -759,10 +816,10 @@
           <tr>
             <th>🖥️ Aparell</th>
             <th>🔢 Unitats</th>
-            <th>⚡ W nominal</th>
-            <th>💤 W standby</th>
+            <th>⚡ W nominal<br><span style="font-size:.65rem;opacity:.75;font-weight:400">per unitat</span></th>
+            <th>💤 W standby<br><span style="font-size:.65rem;opacity:.75;font-weight:400">per unitat</span></th>
             <th>⏱️ h/dia ús</th>
-            <th>⏱️ h/dia standby</th>
+            <th>⏱️ h/dia standby<br><span style="font-size:.68rem;opacity:.75;font-weight:400">(24 − h ús)</span></th>
             <th>📅 Dies/any</th>
             <th>📊 kWh/any (ús)</th>
             <th>💤 kWh/any (SB)</th>
@@ -789,6 +846,207 @@
   </div>
 
 </div><!-- /aparells -->
+
+
+<!-- ============================================================
+     SEGONA VIDA — Reparar vs Substituir · Protocol · Etiqueta ASG
+     ============================================================ -->
+<div id="segona-vida" class="section">
+
+  <div class="card" style="padding-bottom:.8rem">
+    <h2>♻️ Protocol de Segona Vida</h2>
+    <p style="font-size:.83rem;color:var(--text-soft);margin-bottom:1rem;line-height:1.7">
+      Tres eines per aplicar l'economia circular al centre: decideix si val la pena reparar un equip,
+      dissenya el seu protocol de reutilització i genera l'etiqueta ASG per col·locar-hi.
+    </p>
+    <div class="sv-tabs">
+      <button class="sv-tab on"  onclick="svShow('reparar',this)">🔧 Reparar vs. Substituir</button>
+      <button class="sv-tab"     onclick="svShow('protocol',this)">📋 Protocol de Segona Vida</button>
+      <button class="sv-tab"     onclick="svShow('etiqueta',this)">🏷️ Etiqueta ASG</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PANEL 1 — REPARAR VS. SUBSTITUIR
+         ══════════════════════════════════════════════════════ -->
+    <div id="sv-reparar" class="sv-panel on">
+
+      <div class="rv-grid">
+        <!-- REPARAR -->
+        <div class="rv-box" style="background:rgba(64,145,108,.05);border-color:rgba(64,145,108,.3)">
+          <h3 style="color:#1b4332;margin-bottom:.8rem">🔧 Opció A — Reparar</h3>
+          <div class="rv-in-row">
+            <label>Cost reparació (€)</label>
+            <input class="rv-in" type="number" id="rv-cost-rep" value="80" min="0" oninput="rvCalc()">
+          </div>
+          <div class="rv-in-row">
+            <label>Vida útil guanyada (anys)</label>
+            <input class="rv-in" type="number" id="rv-vida-rep" value="3" min="0" step="0.5" oninput="rvCalc()">
+          </div>
+          <div class="rv-in-row">
+            <label>CO₂ reparació (kg)</label>
+            <input class="rv-in" type="number" id="rv-co2-rep" value="5" min="0" step="0.5" oninput="rvCalc()">
+            <span style="font-size:.7rem;color:var(--text-soft);margin-left:.3rem">≈ transport+taller</span>
+          </div>
+          <div class="rv-in-row">
+            <label>Consum actual (W)</label>
+            <input class="rv-in" type="number" id="rv-w-vell" value="120" min="0" oninput="rvCalc()">
+          </div>
+        </div>
+
+        <!-- SUBSTITUIR -->
+        <div class="rv-box" style="background:rgba(198,40,40,.04);border-color:rgba(198,40,40,.2)">
+          <h3 style="color:#c62828;margin-bottom:.8rem">🛒 Opció B — Substituir</h3>
+          <div class="rv-in-row">
+            <label>Cost equip nou (€)</label>
+            <input class="rv-in" type="number" id="rv-cost-nou" value="600" min="0" oninput="rvCalc()">
+          </div>
+          <div class="rv-in-row">
+            <label>Vida útil esperada (anys)</label>
+            <input class="rv-in" type="number" id="rv-vida-nou" value="6" min="0" step="0.5" oninput="rvCalc()">
+          </div>
+          <div class="rv-in-row">
+            <label>CO₂ fabricació (kg)</label>
+            <input class="rv-in" type="number" id="rv-co2-nou" value="300" min="0" oninput="rvCalc()">
+            <span style="font-size:.7rem;color:var(--text-soft);margin-left:.3rem">≈ PC torre</span>
+          </div>
+          <div class="rv-in-row">
+            <label>Consum nou equip (W)</label>
+            <input class="rv-in" type="number" id="rv-w-nou" value="65" min="0" oninput="rvCalc()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Paràmetres comuns -->
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;
+        background:rgba(168,110,60,.07);padding:.7rem 1rem;border-radius:8px;font-size:.82rem;align-items:center">
+        <label style="font-weight:700;color:var(--wood-dark)">⏱️ Hores/dia:
+          <input class="rv-in" type="number" id="rv-hores" value="8" min="0" max="24" oninput="rvCalc()" style="width:60px;margin-left:.3rem">
+        </label>
+        <label style="font-weight:700;color:var(--wood-dark)">📅 Dies/any:
+          <input class="rv-in" type="number" id="rv-dies" value="175" min="1" max="365" oninput="rvCalc()" style="width:65px;margin-left:.3rem">
+        </label>
+        <label style="font-weight:700;color:var(--wood-dark)">💶 €/kWh:
+          <input class="rv-in" type="number" id="rv-tarifa" value="0.17" min="0" step="0.01" oninput="rvCalc()" style="width:60px;margin-left:.3rem">
+        </label>
+        <label style="font-weight:700;color:var(--wood-dark)">🏷️ Component:
+          <input type="text" id="rv-nom" value="Ordinador vell (Torre)" oninput="rvCalc()"
+            style="margin-left:.3rem;padding:.3rem .5rem;border:1.5px solid rgba(168,110,60,.3);border-radius:6px;font-size:.82rem;background:var(--wood-grain);width:170px">
+        </label>
+      </div>
+
+      <div id="rv-verdict" class="rv-verdict"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PANEL 2 — PROTOCOL DE SEGONA VIDA
+         ══════════════════════════════════════════════════════ -->
+    <div id="sv-protocol" class="sv-panel">
+
+      <div style="display:flex;gap:.8rem;flex-wrap:wrap;margin-bottom:1.2rem;align-items:center">
+        <label style="font-size:.82rem;font-weight:700;color:var(--wood-dark)">Component:</label>
+        <select class="proto-select" id="proto-tipus" onchange="protoRender()">
+          <option value="pc">🖥️ Ordinador vell</option>
+          <option value="ratolí">🖱️ Ratolí espatllat</option>
+          <option value="toner">🖨️ Tòner buit</option>
+          <option value="monitor">🖵 Monitor</option>
+          <option value="portàtil">💻 Portàtil</option>
+        </select>
+        <label style="font-size:.82rem;font-weight:700;color:var(--wood-dark)">Estat:</label>
+        <select class="proto-select" id="proto-estat" onchange="protoRender()">
+          <option value="funciona">✅ Funciona parcialment</option>
+          <option value="espatllat">⚠️ Espatllat (reparable)</option>
+          <option value="obsolet">🔴 Obsolet / irreparable</option>
+        </select>
+      </div>
+
+      <div id="proto-steps"></div>
+
+      <div style="margin-top:1rem;padding:.8rem 1rem;background:rgba(64,145,108,.07);
+        border:1.5px solid rgba(64,145,108,.25);border-radius:8px;font-size:.8rem;
+        color:var(--text-soft);line-height:1.8">
+        <strong style="color:var(--eco-dark)">📌 Base legal i normativa:</strong><br>
+        ▸ <strong>Llei 7/2022</strong> de residus i sòl contaminat per a una economia circular (Espanya)<br>
+        ▸ <strong>Directiva 2012/19/UE</strong> — RAEE (Residus d'Aparells Elèctrics i Electrònics)<br>
+        ▸ <strong>Reglament Ecodisseny UE 2021/341</strong> — dret a la reparació<br>
+        ▸ <strong>ODS 12</strong> — Producció i consum responsables
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PANEL 3 — ETIQUETA ASG
+         ══════════════════════════════════════════════════════ -->
+    <div id="sv-etiqueta" class="sv-panel">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+        <!-- Controls -->
+        <div>
+          <h3 style="color:var(--wood-dark);margin-bottom:.8rem;font-size:.9rem">⚙️ Dades de l'equip</h3>
+          <input class="asg-in" id="asg-nom"    placeholder="Nom de l'equip (ex: PC Torre Dell)" oninput="asgRender()">
+          <input class="asg-in" id="asg-model"  placeholder="Model / Número sèrie" oninput="asgRender()">
+          <input class="asg-in" id="asg-any"    placeholder="Any de fabricació" oninput="asgRender()">
+          <input class="asg-in" id="asg-w"      type="number" placeholder="Potència (W)" oninput="asgRender()">
+          <input class="asg-in" id="asg-kwh"    type="number" placeholder="kWh/any estimats" oninput="asgRender()">
+          <input class="asg-in" id="asg-co2"    type="number" placeholder="kg CO₂ fabricació" oninput="asgRender()">
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">Eficiència energètica:</label>
+          <select class="asg-in" id="asg-ef" onchange="asgRender()" style="margin-top:.25rem">
+            <option value="A">⭐ A — Excel·lent</option>
+            <option value="B" selected>⭐ B — Bona</option>
+            <option value="C">⭐ C — Acceptable</option>
+            <option value="D">⭐ D — Millorable</option>
+          </select>
+          <label style="font-size:.8rem;font-weight:700;color:var(--wood-dark)">Decisió Segona Vida:</label>
+          <select class="asg-in" id="asg-decisio" onchange="asgRender()" style="margin-top:.25rem">
+            <option value="reparar">🔧 En reparació</option>
+            <option value="reutilitzar">♻️ Reutilitzar</option>
+            <option value="donar">🎁 Donar a entitat</option>
+            <option value="reciclar">🗑️ Reciclatge RAEE</option>
+          </select>
+          <button class="btn btn-eco" onclick="window.print()" style="margin-top:.6rem;width:100%">🖨️ Imprimir etiqueta</button>
+        </div>
+
+        <!-- Preview etiqueta -->
+        <div>
+          <h3 style="color:var(--wood-dark);margin-bottom:.8rem;font-size:.9rem">🏷️ Previsualització</h3>
+          <div class="asg-label" id="asg-preview">
+            <div class="asg-header">
+              <div>
+                <h3 id="ap-nom-lbl">Nom de l'equip</h3>
+                <span id="ap-model-lbl">Model · Any</span>
+              </div>
+              <div class="asg-qr">QR<br>ITB</div>
+            </div>
+            <div class="asg-body">
+              <div class="asg-row"><span class="lbl">⚡ Potència</span><span class="val" id="ap-w-lbl">— W</span></div>
+              <div class="asg-row"><span class="lbl">📊 Consum anual</span><span class="val" id="ap-kwh-lbl">— kWh/any</span></div>
+              <div class="asg-row"><span class="lbl">🌍 CO₂ fabricació</span><span class="val" id="ap-co2-lbl">— kg CO₂</span></div>
+              <div class="asg-row">
+                <span class="lbl">🔋 Eficiència</span>
+                <div class="asg-rating" id="ap-ef-lbl">
+                  <div class="asg-dot" style="background:#1b5e20"></div>
+                  <div class="asg-dot" style="background:#1b5e20"></div>
+                  <div class="asg-dot" style="background:#ddd"></div>
+                  <div class="asg-dot" style="background:#ddd"></div>
+                </div>
+              </div>
+              <div class="asg-row" style="margin-top:.3rem;padding-top:.5rem;border-top:1.5px dashed rgba(168,110,60,.3)">
+                <span class="lbl">♻️ Segona Vida</span>
+                <span class="val" id="ap-decisio-lbl" style="color:#1565c0">—</span>
+              </div>
+            </div>
+            <div class="asg-footer">Institut Tecnològic de Barcelona · Pla de Sostenibilitat 2025–2027</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;font-size:.78rem;color:var(--text-soft);line-height:1.7;
+        background:rgba(168,110,60,.07);padding:.7rem 1rem;border-radius:8px">
+        💡 <strong>Com usar l'etiqueta:</strong> Imprimeix-la, plasti­fica-la i enganxa-la a l'equip.
+        Inclou: potència real (W de l'etiqueta posterior), consum anual calculat, empremta de carboni
+        de la fabricació i la decisió de Segona Vida assignada. Actualitza-la cada curs.
+      </div>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /segona-vida -->
 
 </main>
 

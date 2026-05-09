@@ -332,37 +332,14 @@ footer span{color:var(--gold);}
   .kpi .val{font-size:1.3rem;}
   .photo-strip{grid-template-columns:repeat(2,1fr);}
 }
+/* ── Plan tabs */
+.plan-tab{padding:.45rem 1rem;border:1.5px solid rgba(168,110,60,.35);border-radius:20px;background:transparent;color:var(--text-soft);font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.plan-tab:hover{background:rgba(168,110,60,.12);color:var(--wood-dark)}
+.plan-tab.active{background:linear-gradient(135deg,var(--eco-mid),var(--eco-dark));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(27,67,50,.25)}
+.plan-block{transition:opacity .25s ease}
+.plan-block.hidden{display:none}
 
-/* ── Plan tabs ───────────────────────────────────────────── */
-.plan-tab {
-  padding:.45rem 1rem;border:1.5px solid rgba(168,110,60,.35);
-  border-radius:20px;background:transparent;
-  color:var(--text-soft);font-size:.8rem;font-weight:700;
-  cursor:pointer;transition:all .2s;white-space:nowrap;
-}
-.plan-tab:hover { background:rgba(168,110,60,.12);color:var(--wood-dark); }
-.plan-tab.active {
-  background:linear-gradient(135deg,var(--eco-mid),var(--eco-dark));
-  color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(27,67,50,.25);
-}
-.plan-block { transition:opacity .25s ease; }
-.plan-block.hidden { display:none; }
-
-/* ── Contrast table ──────────────────────────────────────── */
-.contrast-row {
-  display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
-  gap:.5rem;align-items:center;padding:.6rem .75rem;
-  border-bottom:1px solid rgba(168,110,60,.12);font-size:.81rem;
-}
-.contrast-row:last-child{border-bottom:none}
-.contrast-head{background:linear-gradient(135deg,var(--wood-dark),var(--wood-mid));color:var(--wood-cream);font-weight:700;font-size:.76rem;}
-.dev-ok  {color:#1b5e20;font-weight:800}
-.dev-warn{color:#e65100;font-weight:800}
-.dev-bad {color:#c62828;font-weight:800}
-.dev-bar-wrap{height:5px;background:rgba(168,110,60,.15);border-radius:3px;margin-top:3px}
-.dev-bar{height:5px;border-radius:3px;transition:width .3s}
-
-/* ── Inventari d'equips ──────────────────────────────────── */
+/* ── Inventari */
 .inv-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:.8rem}
 .inv-table th{background:linear-gradient(135deg,#1b4332,#2d6a4f);color:#fff;padding:.45rem .6rem;text-align:center;font-weight:700;white-space:nowrap}
 .inv-table th:first-child{text-align:left}
@@ -378,7 +355,7 @@ footer span{color:var(--gold);}
 .dev-neg{color:#1b5e20;font-weight:800}
 .concl-box{border-radius:8px;padding:.7rem 1rem;font-size:.8rem;line-height:1.7;margin-top:.6rem}
 
-/* ── Aparells ────────────────────────────────────────────── */
+/* ── Aparells */
 .ap-table{width:100%;border-collapse:collapse;font-size:.8rem}
 .ap-table th{background:linear-gradient(135deg,var(--wood-dark),var(--wood-mid));color:var(--wood-cream);padding:.5rem .65rem;text-align:center;white-space:nowrap}
 .ap-table th:first-child{text-align:left}
@@ -397,7 +374,7 @@ footer span{color:var(--gold);}
 .ap-kpi .val{font-size:1.5rem;font-weight:800}
 .ap-kpi .lbl{font-size:.73rem;opacity:.9;margin-top:.2rem}
 
-/* ── Segona Vida ─────────────────────────────────────────── */
+/* ── Segona Vida */
 .sv-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.2rem}
 .sv-tab{padding:.45rem 1.1rem;border:1.5px solid rgba(168,110,60,.35);border-radius:20px;background:transparent;color:var(--text-soft);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
 .sv-tab:hover{background:rgba(168,110,60,.1);color:var(--wood-dark)}
@@ -433,10 +410,6 @@ footer span{color:var(--gold);}
 .asg-in2{width:100%;padding:.35rem .6rem;border:1.5px solid rgba(168,110,60,.3);border-radius:6px;font-size:.82rem;background:var(--wood-grain);color:var(--text);margin-bottom:.45rem}
 .asg-in2:focus{border-color:var(--eco-light);outline:none}
 
-/* ── Print — only label ──────────────────────────────────── */
-@media print {
-  body > *:not(#print-area){display:none !important}
-  #print-area{display:block !important}
-  #print-area .asg-label{box-shadow:none;margin:0;width:320px}
-}
+/* ── Print */
+@media print{body>*:not(#print-area){display:none !important}#print-area{display:block !important}#print-area .asg-label{box-shadow:none;margin:0;width:320px}}
 #print-area{display:none}
